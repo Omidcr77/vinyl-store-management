@@ -1,0 +1,23 @@
+{
+  "name": "vinyl-store",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "db": "node scripts/local-db.js",
+    "seed": "npm run seed -w backend",
+    "build": "npm run build -w frontend",
+    "test": "npm run test -w backend",
+    "test:ui": "node tests/ui.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "mongodb-memory-server": "^10.2.0",
+    "playwright": "^1.55.0",
+    "prettier": "^3.9.9"
+  }
+}

@@ -1,0 +1,187 @@
+/* Dari layout. ISO dates, telephone numbers and invoice identifiers retain LTR order. */
+html[dir="rtl"] {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+}
+html[dir="rtl"] .sidebar {
+  inset: 0 0 0 auto;
+}
+html[dir="rtl"] .workspace {
+  margin-left: 0;
+  margin-right: 232px;
+}
+html[dir="rtl"] table {
+  text-align: right;
+}
+html[dir="rtl"] .eyebrow,
+html[dir="rtl"] th,
+html[dir="rtl"] .nav-label,
+html[dir="rtl"] .brand small {
+  letter-spacing: 0;
+}
+html[dir="rtl"] .brand-mark,
+html[dir="rtl"] .currency-label {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+html[dir="rtl"] .brand {
+  letter-spacing: 0;
+}
+html[dir="rtl"] .floor-pattern {
+  right: auto;
+  left: -12px;
+}
+html[dir="rtl"] .overview-banner > a {
+  margin-right: 0;
+  margin-left: 170px;
+}
+html[dir="rtl"] .low-stock-list > a > span {
+  margin-left: 0;
+  margin-right: auto;
+}
+html[dir="rtl"] .step {
+  margin-right: 0;
+  margin-left: 8px;
+}
+html[dir="rtl"] .lookup-option {
+  text-align: right;
+}
+html[dir="rtl"] .invoice-top > div:last-child {
+  text-align: left;
+}
+html[dir="rtl"] .invoice-totals {
+  margin: 25px auto 25px 0;
+}
+html[dir="rtl"] .mobile-close {
+  right: auto;
+  left: 10px;
+}
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="date"],
+html[dir="rtl"] input[type="url"] {
+  direction: ltr;
+  text-align: right;
+}
+html[dir="rtl"] .back-link svg,
+html[dir="rtl"] .pagination svg,
+html[dir="rtl"] .panel-link svg,
+html[dir="rtl"] .text-link svg {
+  transform: scaleX(-1);
+}
+html[dir="rtl"] .page-heading h1 {
+  letter-spacing: 0;
+  line-height: 1.65;
+}
+html[dir="rtl"] .page-heading p,
+html[dir="rtl"] .form-panel p,
+html[dir="rtl"] .help-card p {
+  line-height: 1.9;
+}
+html[dir="rtl"] .summary-card strong {
+  letter-spacing: 0;
+  font-size: 23px;
+}
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.checkbox-field input {
+  width: 17px;
+  height: 17px;
+  min-height: 17px;
+  accent-color: #254d3d;
+  flex-shrink: 0;
+}
+@media (max-width: 1200px) {
+  html[dir="rtl"] .workspace {
+    margin-right: 205px;
+  }
+  html[dir="rtl"] .overview-banner > a {
+    margin-left: 105px;
+  }
+}
+@media (max-width: 1000px) {
+  html[dir="rtl"] .overview-banner > a {
+    margin-left: 20px;
+  }
+}
+@media (max-width: 760px) {
+  html[dir="rtl"] .workspace {
+    margin-right: 0;
+  }
+  html[dir="rtl"] .sidebar {
+    transform: translateX(100%);
+  }
+  html[dir="rtl"] .sidebar.open {
+    transform: translateX(0);
+  }
+  html[dir="rtl"] .summary-card strong {
+    font-size: 21px;
+  }
+  html[dir="rtl"] .card-label {
+    font-size: 10px;
+    min-height: 30px;
+  }
+  html[dir="rtl"] .topbar-right > span:first-child {
+    display: none;
+  }
+  html[dir="rtl"] .chart-column > span {
+    font-size: 7px;
+  }
+}
+@media print {
+  html[dir="rtl"] .workspace {
+    margin: 0;
+  }
+  html[dir="rtl"] dialog {
+    direction: rtl;
+  }
+  html[dir="rtl"] .print-document table {
+    text-align: right;
+  }
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: Vazirmatn, Tahoma, sans-serif;
+}
+.record-photo {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.record-photo.large {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  background: #f3f7f5;
+  display: block;
+  margin: 12px 0;
+}
+.image-picker {
+  padding: 12px;
+  border: 1px dashed #b9cbc4;
+  border-radius: 12px;
+}
+.image-picker input[type="file"] {
+  display: block;
+  max-width: 100%;
+  margin: 8px 0;
+}
+.document-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.document-actions .error {
+  flex-basis: 100%;
+}

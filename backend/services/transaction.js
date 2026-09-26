@@ -1,0 +1,31 @@
+import mongoose from "mongoose";
+import { createHash } from "node:crypto";
+import { AppError } from "../utils/errors.js";
+export const hash = (data) =>
+  createHash("sha256").update(JSON.stringify(data)).digest("hex");
+export async function transaction(work) {
+  return mongoose.connection.transaction(work);
+}
+export async function idempotent(Model, key, data, work) {
+  const requestHash = hash(data);
+  const check = (record) => {
+    if (record.requestHash !== requestHash)
+      throw new AppError(
+        "این درخواست قبلاً با معلومات متفاوت ثبت شده است. معاملهٔ جدید را آغاز کنید.",
+        409,
+      );
+    return record;
+  };
+  const existing = await Model.findOne({ idempotencyKey: key });
+  if (existing) return check(existing);
+  try {
+    return await transaction((session) => work(session, requestHash));
+  } catch (error) {
+    // A concurrent identical request may have consumed the last stock or debt
+    // before this transaction retries. Recheck even when the error is not a
+    // duplicate-key error so that a completed request always replays correctly.
+    const saved = await Model.findOne({ idempotencyKey: key });
+    if (saved) return check(saved);
+    throw error;
+  }
+}

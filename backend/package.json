@@ -1,0 +1,28 @@
+{
+  "name": "vinyl-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "seed": "node seed.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js"
+  },
+  "dependencies": {
+    "@fontsource/vazirmatn": "^5.3.0",
+    "cors": "^2.8.5",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.2.0",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "mongoose": "^8.18.0",
+    "multer": "^2.4.0",
+    "playwright": "^1.63.0",
+    "sharp": "^0.35.4",
+    "socket.io": "^4.8.1",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.4"
+  }
+}
