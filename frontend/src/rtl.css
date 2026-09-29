@@ -165,6 +165,7 @@
   font-size: 12px;
 }
 .delete-icon {
+  order: 1;
   color: #dc2626;
   flex-shrink: 0;
 }
