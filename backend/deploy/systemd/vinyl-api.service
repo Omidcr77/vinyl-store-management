@@ -1,0 +1,19 @@
+[Unit]
+Description=Vinyl Store API
+Wants=vinyl-mongodb.service
+After=vinyl-mongodb.service
+PartOf=vinyl-store.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/omid/projects/vinyl-store-management/backend
+Environment=HOME=/home/omid
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+TimeoutStopSec=45
+NoNewPrivileges=true
+
+[Install]
+WantedBy=vinyl-store.target

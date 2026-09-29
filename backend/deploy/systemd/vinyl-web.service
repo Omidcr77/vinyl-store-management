@@ -1,0 +1,20 @@
+[Unit]
+Description=Vinyl Store frontend and API proxy
+Wants=vinyl-api.service
+After=vinyl-api.service
+PartOf=vinyl-store.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/omid/projects/vinyl-store-management/frontend
+Environment=HOME=/home/omid
+Environment=VITE_API_TARGET=http://127.0.0.1:5001
+ExecStart=/usr/bin/node /home/omid/projects/vinyl-store-management/node_modules/vite/bin/vite.js --host 0.0.0.0 --port 5173 --strictPort
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+NoNewPrivileges=true
+
+[Install]
+WantedBy=vinyl-store.target
