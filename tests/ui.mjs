@@ -19,15 +19,19 @@ import {
 } from "../backend/services/authService.js";
 import { createApp } from "../backend/app.js";
 process.env.TZ = "Asia/Kabul";
-process.env.CLIENT_URL = "http://127.0.0.1:5174";
+const testHost = process.env.UI_TEST_HOST || "127.0.0.1";
+const apiPort = Number(process.env.UI_TEST_API_PORT || 5002);
+const apiBase = `http://127.0.0.1:${apiPort}`;
+process.env.CLIENT_URL = `http://${testHost}:5174`;
 let db, server, io, vite, browser;
 let uploadDir, authCookie, csrfToken;
 let logs = "";
 const errors = [];
-const base = "http://127.0.0.1:5174";
+let restoringBackup = false;
+const base = process.env.CLIENT_URL;
 async function api(path, body, method = "POST") {
   const response = await fetch(
-    "http://127.0.0.1:5001/api" + path,
+    apiBase + "/api" + path,
     body
       ? {
           method,
@@ -47,6 +51,11 @@ async function api(path, body, method = "POST") {
 try {
   uploadDir = await mkdtemp(resolve(tmpdir(), "vinyl-ui-images-"));
   process.env.UPLOAD_DIR = uploadDir;
+  process.env.BACKUP_DIR = resolve(
+    uploadDir,
+    "../",
+    `${uploadDir.split("/").pop()}-backups`,
+  );
   db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await connectDB(db.getUri("ui_tests"));
   const app = createApp();
@@ -61,8 +70,8 @@ try {
     mustChangePassword: false,
     passwordHash: await hashPassword("UI-password-123"),
   });
-  await new Promise((resolve) => server.listen(5001, "127.0.0.1", resolve));
-  const loginResponse = await fetch("http://127.0.0.1:5001/api/auth/login", {
+  await new Promise((resolve) => server.listen(apiPort, "127.0.0.1", resolve));
+  const loginResponse = await fetch(`${apiBase}/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -77,14 +86,14 @@ try {
     [
       resolve("node_modules/vite/bin/vite.js"),
       "--host",
-      "127.0.0.1",
+      testHost,
       "--port",
       "5174",
       "--strictPort",
     ],
     {
       cwd: resolve("frontend"),
-      env: { ...process.env, VITE_API_TARGET: "http://127.0.0.1:5001" },
+      env: { ...process.env, VITE_API_TARGET: apiBase },
       windowsHide: true,
       stdio: "pipe",
     },
@@ -190,7 +199,15 @@ try {
   console.log("PASS: admin session duration setting saves and persists");
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
-    if (m.type() === "error") errors.push(m.text());
+    if (
+      m.type() === "error" &&
+      !(
+        restoringBackup &&
+        (m.text().includes("401 (Unauthorized)") ||
+          m.text().includes("503 (Service Unavailable)"))
+      )
+    )
+      errors.push(m.text());
   });
   await page.goto(base);
   assert.equal(await page.locator("html").getAttribute("lang"), "fa-AF");
@@ -216,6 +233,32 @@ try {
   await page.getByRole("button", { name: "ذخیرهٔ مشتری" }).click();
   await page.getByText("Browser Customer", { exact: true }).waitFor();
   console.log("PASS: customer creation");
+  const removable = await api("/customers", {
+    name: "Delete browser customer",
+    phone: "0701111111",
+  });
+  await page.goto(`${base}/customers/${removable._id}`);
+  await page.getByRole("button", { name: "حذف مشتری", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "انصراف", exact: true })
+    .click();
+  assert.equal(
+    (await api(`/customers/${removable._id}`)).customer.name,
+    "Delete browser customer",
+  );
+  await page.getByRole("button", { name: "حذف مشتری", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "حذف مشتری", exact: true })
+    .click();
+  await page.waitForURL("**/customers");
+  assert.ok(
+    !(await api("/customers")).items.some((c) => c._id === removable._id),
+  );
+  console.log(
+    "PASS: customer deletion confirmation, cancellation and list refresh",
+  );
   assert.equal(
     await page.locator('.sidebar a[href="/inventory/new"]').count(),
     0,
@@ -559,7 +602,7 @@ try {
     .click();
   await page.getByRole("button", { name: /مشتری گذری/ }).click();
   await waitPrice("نرخ مشتری فی متر طولی", "250");
-  assert.equal(await page.getByRole("checkbox").count(), 0);
+  assert.equal(await page.getByRole("dialog").getByRole("checkbox").count(), 0);
   await page.getByLabel("روش قیمت‌گذاری").selectOption("area");
   await waitPrice("نرخ مشتری فی متر مربع", "");
   await page.goto(`${base}/customers/${customer._id}`);
@@ -965,6 +1008,200 @@ try {
   assert.equal(await page.locator(".sidebar.open").count(), 0);
   console.log("PASS: responsive layouts and mobile navigation");
   assert.deepEqual(errors, [], "Browser console or runtime errors");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const bulkCustomerA = await api("/customers", {
+    name: "Bulk UI A",
+    phone: "0701111111",
+  });
+  const bulkCustomerB = await api("/customers", {
+    name: "Bulk UI B",
+    phone: "0702222222",
+  });
+  const bulkRollA = await api("/vinyl", {
+    vinylName: "Bulk UI roll A",
+    type: "Carpet",
+    color: "Red",
+    length: 20,
+    width: 4,
+  });
+  const bulkRollB = await api("/vinyl", {
+    vinylName: "Bulk UI roll B",
+    type: "Carpet",
+    color: "Blue",
+    length: 20,
+    width: 4,
+  });
+  const bulkSales = [];
+  for (const roll of [bulkRollA, bulkRollB]) {
+    const response = await fetch(apiBase + "/api/sales", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: authCookie,
+        "X-CSRF-Token": csrfToken,
+        "Idempotency-Key": `bulk-ui-${roll._id}`,
+      },
+      body: JSON.stringify({
+        customerId: bulkCustomerA._id,
+        vinylId: roll._id,
+        soldLength: 2,
+        pricingMethod: "linear",
+        unitPrice: 10,
+        paidAmount: 0,
+      }),
+    });
+    assert.equal(response.status, 201);
+    bulkSales.push((await response.json()).data);
+  }
+  for (const [route, search, labels] of [
+    ["sales", "Bulk UI A", bulkSales.map((s) => s.billNumber)],
+    [
+      "inventory",
+      "Bulk UI roll",
+      [String(bulkRollA.rollNumber), String(bulkRollB.rollNumber)].map(
+        (n) => `رول ${n}`,
+      ),
+    ],
+    ["customers", "Bulk UI", ["Bulk UI A", "Bulk UI B"]],
+  ]) {
+    await page.goto(`${base}/${route}`);
+    await page.getByRole("textbox", { name: /جستجو/ }).fill(search);
+    for (const label of labels)
+      await page
+        .getByRole("checkbox", { name: `انتخاب ${label}`, exact: true })
+        .waitFor();
+    await page.waitForFunction(
+      () => document.querySelectorAll('input[type="checkbox"]').length === 3,
+    );
+    const selectAll = page.getByRole("checkbox", {
+      name: "انتخاب همهٔ این صفحه",
+      exact: true,
+    });
+    await selectAll.check();
+    await page
+      .getByRole("button", { name: "حذف انتخاب‌شده‌ها", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "انصراف", exact: true })
+      .click();
+    assert.equal(await selectAll.isChecked(), true);
+    await page
+      .getByRole("button", { name: "حذف انتخاب‌شده‌ها", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "تأیید حذف", exact: true })
+      .click();
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    for (const label of labels)
+      await page
+        .getByRole("checkbox", { name: `انتخاب ${label}`, exact: true })
+        .waitFor({ state: "hidden" });
+  }
+  assert.equal(
+    (await api(`/customers/${bulkCustomerA._id}`)).customer.balance,
+    0,
+  );
+  console.log(
+    "PASS: bulk selection, cancel and delete for sales, inventory and customers",
+  );
+  assert.deepEqual(
+    errors,
+    [],
+    "Browser console or runtime errors after bulk deletion",
+  );
+  await page.goto(`${base}/settings`);
+  // A background session refresh during temporary maintenance must retain login.
+  await page.route("**/api/auth/session", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: false,
+        error: { message: "Maintenance" },
+      }),
+    }),
+  );
+  restoringBackup = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator(".sidebar").count(), 1);
+  await page.unroute("**/api/auth/session");
+  restoringBackup = false;
+  const beforeBackup = await api("/settings");
+  const downloadBackup = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "دانلود بکاپ کامل", exact: true })
+    .click();
+  const backupDownload = await downloadBackup;
+  const backupPath = await backupDownload.path();
+  assert.ok((await stat(backupPath)).size > 1000);
+  await page
+    .getByLabel("انتخاب فایل بکاپ", { exact: true })
+    .setInputFiles(backupPath);
+  await page
+    .getByRole("button", { name: "بررسی فایل بکاپ", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "بازیابی این بکاپ", exact: true })
+    .waitFor();
+  await page.screenshot({
+    path: "test-results/backup-preview.png",
+    fullPage: true,
+  });
+  await api(
+    "/settings",
+    { ...beforeBackup, storeName: "Changed after backup" },
+    "PUT",
+  );
+  await page
+    .getByRole("button", { name: "بازیابی این بکاپ", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .getByRole("button", { name: "تأیید بازیابی کامل", exact: true })
+      .isDisabled(),
+    true,
+  );
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "انصراف", exact: true })
+    .click();
+  assert.equal((await api("/settings")).storeName, "Changed after backup");
+  await page
+    .getByRole("button", { name: "بازیابی این بکاپ", exact: true })
+    .click();
+  await page.getByRole("dialog").getByRole("checkbox").check();
+  restoringBackup = true;
+  await page
+    .getByRole("button", { name: "تأیید بازیابی کامل", exact: true })
+    .click();
+  await page.waitForURL("**/login?restored=1");
+  await page
+    .getByText("بکاپ با موفقیت بازیابی شد.", { exact: false })
+    .waitFor();
+  await page.getByLabel("نام کاربری", { exact: true }).fill("uiadmin");
+  await page.getByLabel("رمز عبور", { exact: true }).fill("UI-password-123");
+  await page.getByRole("button", { name: "ورود", exact: true }).click();
+  await page.locator(".sidebar").waitFor();
+  restoringBackup = false;
+  await page.goto(`${base}/settings`);
+  assert.equal(
+    await page.locator('input[name="storeName"]').inputValue(),
+    beforeBackup.storeName,
+  );
+  await page
+    .getByRole("button", { name: "نمایش بکاپ‌های پیش از بازیابی", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: /دانلود بکاپ پیشین/ })
+    .first()
+    .waitFor();
+  console.log(
+    "PASS: full backup download, preview, cancel, restore, safety copy and restored admin login",
+  );
+  assert.deepEqual(errors, [], "Browser errors after backup restore");
   console.log("All browser workflows passed; no console errors.");
 } catch (error) {
   console.error(error);
@@ -995,4 +1232,6 @@ try {
   await mongoose.disconnect();
   await db?.stop();
   if (uploadDir) await rm(uploadDir, { recursive: true, force: true });
+  if (process.env.BACKUP_DIR)
+    await rm(process.env.BACKUP_DIR, { recursive: true, force: true });
 }

@@ -123,7 +123,7 @@ export function customerPipeline(filter) {
   ];
 }
 export async function customerReport(q) {
-  const filter = filterFor("customers", q),
+  const filter = filterFor("customers", { archived: "all", ...q }),
     { page, limit } = pagination(q);
   const [items, total] = await Promise.all([
     Customer.aggregate([

@@ -1,3 +1,4 @@
+import DeletedRecord from "../models/DeletedRecord.js";
 import { actorFields } from "./actor.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
@@ -23,9 +24,23 @@ export async function createSale(data, key) {
     data,
     async (session, requestHash, scopedKey) => {
       const settings = await lockSettings(session);
+      if (
+        await DeletedRecord.exists({
+          kind: "Sale",
+          idempotencyKey: scopedKey,
+        }).session(session)
+      )
+        throw new AppError(
+          "این فروش حذف شده است. برای فروش تازه درخواست جدید ثبت کنید.",
+          409,
+        );
       const customer = data.customerId
         ? required(
-            await Customer.findById(data.customerId).session(session),
+            await Customer.findOneAndUpdate(
+              { _id: data.customerId, archived: { $ne: true } },
+              { $inc: { __v: 1 } },
+              { new: true, session },
+            ),
             "مشتری یافت نشد.",
           )
         : null;

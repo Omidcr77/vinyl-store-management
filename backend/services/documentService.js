@@ -1,3 +1,4 @@
+import DeletedRecord from "../models/DeletedRecord.js";
 import { renderBill } from "../../shared/bill.js";
 import { chromium } from "playwright";
 import { readFile } from "node:fs/promises";
@@ -13,7 +14,7 @@ let browserPromise;
 let active = 0;
 export async function closePdfBrowser() {
   // A response may have finished sending while its page is still closing.
-  while (active > 0) await new Promise(resolve => setTimeout(resolve, 25));
+  while (active > 0) await new Promise((resolve) => setTimeout(resolve, 25));
   if (browserPromise) await (await browserPromise).close();
   browserPromise = undefined;
 }
@@ -25,6 +26,10 @@ export async function receiptData(paymentId) {
       _id: { $in: payment.allocations.map((a) => a.saleId) },
     }).lean(),
   ]);
+  const deleted = await DeletedRecord.find({
+    kind: "Sale",
+    recordId: { $in: payment.allocations.map((a) => a.saleId) },
+  }).lean();
   return {
     ...payment,
     receiptNumber: payment.receiptNumber || `RCP-${payment._id}`,
@@ -36,7 +41,9 @@ export async function receiptData(paymentId) {
       ...a,
       billNumber:
         sales.find((s) => String(s._id) === String(a.saleId))?.billNumber ||
-        String(a.saleId),
+        (deleted.find((d) => String(d.recordId) === String(a.saleId))
+          ? `${deleted.find((d) => String(d.recordId) === String(a.saleId)).record.billNumber} (حذف‌شده)`
+          : String(a.saleId)),
     })),
   };
 }

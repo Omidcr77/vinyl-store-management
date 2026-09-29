@@ -5,7 +5,7 @@ import { Table, Badge } from "./UI";
 import { useStore } from "../services/store";
 import { number } from "../utils/format";
 import { saleItems } from "../../../shared/sale-items.js";
-export default function SaleTable({ rows, view = "table" }) {
+export default function SaleTable({ rows, view = "table", extraColumns = [] }) {
   const { date, money } = useStore();
   const [print, setPrint] = useState(null);
   return (
@@ -14,6 +14,7 @@ export default function SaleTable({ rows, view = "table" }) {
         view={view}
         rows={rows}
         columns={[
+          ...extraColumns,
           {
             key: "print",
             label: "سند",

@@ -29,8 +29,10 @@ export function AuthProvider({ children }) {
       accept(await api("/auth/session"));
       setError("");
     } catch (e) {
-      clear();
-      if (e.status !== 401) setError(e.message);
+      if (e.status === 401) {
+        clear();
+        setError("");
+      } else setError(e.message);
     } finally {
       setLoading(false);
     }

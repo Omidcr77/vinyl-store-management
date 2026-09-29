@@ -1,3 +1,4 @@
+import { useBulkDelete } from "../components/BulkDelete";
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { Plus, Printer, SlidersHorizontal } from "lucide-react";
@@ -37,6 +38,9 @@ function SalesList({ create }) {
   const debounced = useDebounce(search),
     params = { ...filters, search: debounced, page },
     { data, loading, error } = useResource(`/sales?${query(params)}`);
+  const bulk = useBulkDelete("sales", data?.items, query(params), () =>
+    setPage(1),
+  );
   function change(next) {
     setFilters((f) => ({ ...f, ...next }));
     setPage(1);
@@ -53,6 +57,7 @@ function SalesList({ create }) {
           <Plus size={17} /> فروش جدید
         </button>
       </PageHeading>
+      {bulk.dialog}
       {(adding || create) && (
         <NewSale
           onClose={() => {
@@ -145,13 +150,18 @@ function SalesList({ create }) {
           </div>
         )}
         <ErrorMessage error={error} />
+        {bulk.toolbar}
         <div className="record-view-bar">
           <ViewControls value={recordView} onChange={setRecordView} />
         </div>
         {loading && !data ? (
           <Loading />
         ) : (
-          <SaleTable rows={data?.items} view={recordView} />
+          <SaleTable
+            rows={data?.items}
+            view={recordView}
+            extraColumns={[...bulk.selectionColumns, ...bulk.deleteColumns]}
+          />
         )}
         <Pagination data={data} onChange={setPage} />
       </section>

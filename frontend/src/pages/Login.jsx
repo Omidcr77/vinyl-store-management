@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useAuth } from "../services/auth";
 export default function Login() {
   const { login, error: connectionError, reload } = useAuth();
+  const [restored] = useState(
+    () => sessionStorage.getItem("backup-restored") === "true",
+  );
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   async function submit(e) {
@@ -11,6 +14,7 @@ export default function Login() {
     const f = new FormData(e.currentTarget);
     try {
       await login(f.get("username"), f.get("password"));
+      sessionStorage.removeItem("backup-restored");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -23,6 +27,12 @@ export default function Login() {
         <div className="login-brand">فرش و قالین فروشی</div>
         <h1>ورود به حساب</h1>
         <p>برای مدیریت دکان، وارد حساب خود شوید.</p>
+        {restored && (
+          <p role="status">
+            بکاپ با موفقیت بازیابی شد. با نام کاربری و رمز موجود در بکاپ وارد
+            شوید.
+          </p>
+        )}
         <form onSubmit={submit}>
           <label className="field">
             <span>نام کاربری</span>

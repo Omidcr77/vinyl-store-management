@@ -1,11 +1,14 @@
+import { useAuth } from "../services/auth";
+import DeleteIcon from "../components/DeleteIcon";
 import { ReceiptPrint } from "../components/RecordPrint";
 import { Photo } from "../components/ImagePicker";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Pencil, Plus, Printer } from "lucide-react";
 import { api, query } from "../services/api";
 import { useResource, useStore } from "../services/store";
 import {
+  ConfirmDialog,
   PageHeading,
   SummaryCard,
   Table,
@@ -21,8 +24,12 @@ import SaleTable from "../components/SaleTable";
 import StatementPrint from "../components/StatementPrint";
 
 export default function CustomerDetail() {
+  const { canManage } = useAuth();
+  const navigate = useNavigate();
+  const [remove, setRemove] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { id } = useParams(),
-    { date, money } = useStore(),
+    { date, money, refresh, notice } = useStore(),
     [purchasePage, setPurchasePage] = useState(1),
     [paymentPage, setPaymentPage] = useState(1),
     [edit, setEdit] = useState(false),
@@ -33,6 +40,7 @@ export default function CustomerDetail() {
     [printError, setPrintError] = useState("");
   const { data, error, loading } = useResource(
     `/customers/${id}?${query({ purchasePage, paymentPage })}`,
+    !deleting,
   );
   async function statement() {
     setPrintBusy(true);
@@ -47,6 +55,26 @@ export default function CustomerDetail() {
   }
   return (
     <>
+      {canManage && remove && (
+        <ConfirmDialog
+          title="حذف مشتری؟"
+          confirmLabel="حذف مشتری"
+          message="مشتری از فهرست فعال حذف می‌شود. حساب، فروشات و رسیدهای قبلی او محفوظ می‌ماند."
+          onClose={() => setRemove(false)}
+          onConfirm={async () => {
+            setDeleting(true);
+            try {
+              await api(`/customers/${id}`, { method: "DELETE" });
+              navigate("/customers");
+              refresh();
+              notice("مشتری حذف شد.");
+            } catch (error) {
+              setDeleting(false);
+              throw error;
+            }
+          }}
+        />
+      )}
       <BackLink to="/customers">برگشت به مشتریان</BackLink>
       <ErrorMessage error={error} />
       {loading && !data && <Loading />}
@@ -57,6 +85,11 @@ export default function CustomerDetail() {
             title={data.customer.name}
             description={`${data.customer.phone}${data.customer.address ? " · " + data.customer.address : ""}`}
           >
+            {canManage && !data.customer.archived && (
+              <button onClick={() => setRemove(true)}>
+                <DeleteIcon /> حذف مشتری
+              </button>
+            )}
             <button onClick={() => setEdit(true)}>
               <Pencil size={16} /> ویرایش مشتری
             </button>
@@ -64,15 +97,24 @@ export default function CustomerDetail() {
               <Printer size={16} />
               {printBusy ? "در حال آماده‌سازی…" : "چاپ صورت‌حساب"}
             </button>
-            <Link className="button" to={`/sales/new?customerId=${id}`}>
-              <Plus size={16} /> فروش جدید
-            </Link>
+            {!data.customer.archived && (
+              <Link className="button" to={`/sales/new?customerId=${id}`}>
+                <Plus size={16} /> فروش جدید
+              </Link>
+            )}
             <button className="primary" onClick={() => setPay(true)}>
               ثبت رسید
             </button>
           </PageHeading>
           <ErrorMessage error={printError} />
-          <p className="small muted">ثبت‌کننده: {data.customer.createdByName || "رکورد قبلی"}</p>
+          {data.customer.archived && (
+            <p role="status">
+              این مشتری از فهرست فعال حذف شده است. حساب و رسیدهای او محفوظ است.
+            </p>
+          )}
+          <p className="small muted">
+            ثبت‌کننده: {data.customer.createdByName || "رکورد قبلی"}
+          </p>
           {data.customer.img && (
             <Photo src={data.customer.img} name={data.customer.name} large />
           )}
@@ -98,7 +140,7 @@ export default function CustomerDetail() {
               accent
             />
           </div>
-          <CustomerPrices customerId={id} />
+          {!deleting && <CustomerPrices customerId={id} />}
           <section className="panel section-gap">
             <div className="panel-heading">
               <div>

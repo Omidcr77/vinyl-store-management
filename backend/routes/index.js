@@ -1,3 +1,4 @@
+import { bulkDelete, singleDelete } from "../services/deleteService.js";
 import { Router } from "express";
 import { allowRoles } from "../middleware/auth.js";
 import * as c from "../controllers/storeController.js";
@@ -37,8 +38,15 @@ router
   .get(c.vinylGet)
   .put(c.vinylSave)
   .delete(c.vinylDelete);
+for (const kind of ["customers", "vinyl", "sales"])
+  router.post(`/${kind}/bulk-delete`, management, bulkDelete(kind));
+router.delete("/sales/:id", management, singleDelete("sales"));
 router.route("/customers").get(c.customerList).post(c.customerSave);
-router.route("/customers/:id").get(c.customerGet).put(c.customerSave);
+router
+  .route("/customers/:id")
+  .get(c.customerGet)
+  .put(c.customerSave)
+  .delete(management, singleDelete("customers"));
 router.get("/customers/:id/statement", statementGet);
 router.get("/customers/:id/statement/pdf", statementPdf);
 router.route("/customers/:id/prices").get(priceList).put(priceSave);

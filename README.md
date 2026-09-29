@@ -46,6 +46,10 @@ Enter one payment for the entire bill, then choose **تکمیل فروش**. The 
 
 The invoice/PDF lists all items and one payment summary. Longer bills continue onto additional A4 pages. Customer statements, receipts, reports and exports count the invoice totals once. Existing single-item bills remain readable without rewriting history. The sales API accepts `items: [{ vinylId, soldLength, pricingMethod, unitPrice, rememberPrice? }]` plus invoice-level `customerId`, `paidAmount`, `soldDate` and `notes`; the previous single-item payload is still accepted. For two items of the same type/unit, save only one customer rate if their prices differ.
 
+Administrators and managers can select rows in Customers, Inventory and Sales and choose **حذف انتخاب‌شده‌ها**, or delete one row. Select-all applies only to the current page; changing filters or pages clears the selection. A batch is atomic: an invalid record prevents the entire batch from changing.
+
+Customer deletion removes the customer from active lists; use **مشتریان حذف‌شده** to access their preserved account, receipts and balances. Inventory records with active sales cannot be removed until those sales are deleted. Sale deletion restores sold lengths, cancels its initial payment in the ledger, and adjusts customer debt/credit. Separate receipts remain unchanged; released payments settle other open bills or become credit. No cash refund is issued automatically. Deleted invoice snapshots and audit events are retained, and retrying an old sale request cannot recreate it.
+
 ## Customer-specific prices
 
 Each customer can have a separate saved price for each **carpet/flooring type and pricing method**. Linear-meter and square-meter rates are independent.
@@ -139,6 +143,8 @@ For an explicitly named first administrator, `npm run admin:create -- --file <pa
 - Frontend: port **5173**.
 - Backend: http://127.0.0.1:5000.
 - Health: http://127.0.0.1:5000/api/health.
+
+For an existing store, `cd backend && node scripts/add-samples.mjs` adds the named `samples-20260929-v1` batch: 6 customers, 8 rolls in one delivery, 6 sales and 3 receipts. Names start with **نمونه**. It preserves existing store settings and records, uses the current currency, and reuses the same batch on retries. Samples affect reports and balances like normal records.
 
 The seed creates 15 realistic flooring rolls, 5 customers, 10 sales and 3 receipts through the business services. It refuses to modify a nonempty database. Skip it when starting an actual store ledger.
 
@@ -246,7 +252,7 @@ Backend tests start a disposable MongoDB replica set. They cover partial/full sa
 
 Multi-item sale tests cover mixed pricing methods, repeated-roll stock limits, concurrent baskets, full rollback, customer credit, totals counted once, legacy invoices and multi-page A4 PDFs. Delivery tests verify that each group's photo is applied to all of its generated rolls. Browser tests also check copying, replacing and removing group photos independently, whole-roll selection and one invoice for several items.
 
-Browser tests launch their own disposable database, API on **5001**, and frontend on **5174**. They exercise inventory/customer creation and editing, photo uploads, customer-specific prices, sales, payments, invoice/receipt PDF downloads, statement printing, reports, settings and mobile layouts. They fail on browser console errors and horizontal page overflow. Test databases and uploaded test images are separate from the store. Artifacts go in `test-results/`.
+Browser tests launch their own disposable database, API on **5002** (override with `UI_TEST_API_PORT`), and frontend on **5174**. They exercise inventory/customer creation and editing, photo uploads, customer-specific prices, sales, payments, invoice/receipt PDF downloads, statement printing, reports, settings and mobile layouts. They fail on browser console errors and horizontal page overflow. Test databases and uploaded test images are separate from the store. Artifacts go in `test-results/`. To exercise HTTP access through a network IP (including delivery, sale and receipt forms), run `UI_TEST_HOST=<machine-LAN-IP> npm run test:ui`. Test ports must be free.
 
 `npm run build` creates `frontend/dist`. The supplied development setup is intended for local use. For deployment, serve that build from a web server and reverse-proxy `/api` and `/socket.io` to Express. Vite preview is only a build preview; it is not the documented full-stack production host.
 
@@ -308,7 +314,13 @@ Socket.io broadcasts `store:changed` after successful writes. The UI then refetc
 
 This application binds to loopback by default and includes authenticated role-based access. Network deployments require HTTPS with `NODE_ENV=production`, an exact `CLIENT_URL`, and a properly configured reverse proxy. Do not expose MongoDB publicly. The built-in login limiter is process-local; multi-instance deployments need a shared limiter.
 
-Back up the MongoDB database regularly with MongoDB Database Tools (`mongodump` / `mongorestore`) and copy `.data/uploads` (or your configured `UPLOAD_DIR`). Verify that both records and photos restore to a separate environment. Table exports are useful reports, but are not complete backups of financial allocation history. No automatic backup scheduler or general legacy-data migration is included.
+Administrators can use **تنظیمات → بکاپ کامل و بازیابی** to download a `.vinyl-backup.gz` file containing every application data collection and uploaded photo: inventory, customers (including removed customers), sales, receipts, deliveries, saved prices, numbering counters, users/password hashes, settings, audit history, and deleted-sale snapshots. This is separate from CSV/Excel report exports. Keep backup files private; they contain account credentials in hashed form and all store data. Configuration, source code, generated PDFs, and active login sessions are not included. PDFs can be regenerated from restored records.
+
+To restore, select a backup, choose **بررسی فایل بکاپ**, review the counts, then explicitly confirm **بازیابی این بکاپ**. The file must be this application's version-1 format; compressed size is limited to 100 MB and expanded size to 256 MB. Integrity, required collections, user accounts, linked records, counters, and photo paths/content are validated before replacing data. Store requests temporarily pause while a consistent backup or restore runs. This maintenance gate assumes the supplied single API process; do not restore through multiple independent API workers.
+
+Before replacement, the server writes a safety backup under `.data/backups` (override with `BACKUP_DIR`). Admins can download the ten most recent safety backups from Settings. Database replacement runs in one MongoDB transaction; a failed transaction keeps the current records. Missing photos are restored before the commit, existing photos are never overwritten, and unreferenced existing photos may remain. A conflicting same-name photo causes restore to stop. All sessions are revoked after a successful restore, so sign in with an administrator account and password from the imported backup.
+
+No automatic backup scheduler is included. Save copies off this machine regularly. For stores beyond the in-app size limits, use MongoDB Database Tools (`mongodump` / `mongorestore`) and copy `.data/uploads` (or `UPLOAD_DIR`); verify restoration in a separate environment.
 
 The repository excludes local configuration (`.env`), database files, uploaded photos, backups, dependencies, build output and test artifacts. A fresh clone needs the setup steps above; pushing the source code does not back up the store's records or photos.
 

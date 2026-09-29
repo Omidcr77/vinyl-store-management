@@ -1,3 +1,4 @@
+import DeletedRecord from "../models/DeletedRecord.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
@@ -176,7 +177,8 @@ export const settingsSave = async (req, res) => {
     if (
       input.currency !== settings.currency &&
       ((await Sale.exists({}).session(session)) ||
-        (await Payment.exists({}).session(session)))
+        (await Payment.exists({}).session(session)) ||
+        (await DeletedRecord.exists({ kind: "Sale" }).session(session)))
     )
       throw new AppError("واحد پول پس از نخستین فروش یا رسید قابل تغییر نیست.");
     Object.assign(settings, input);

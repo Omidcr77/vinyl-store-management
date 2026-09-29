@@ -1,3 +1,4 @@
+import { useBulkDelete } from "../components/BulkDelete";
 import { useAuth } from "../services/auth";
 import { Photo } from "../components/ImagePicker";
 import { useState } from "react";
@@ -50,6 +51,9 @@ export default function Inventory() {
     debounced = useDebounce(search),
     params = { ...filters, search: debounced, page };
   const { data, error, loading } = useResource(`/vinyl?${query(params)}`);
+  const bulk = useBulkDelete("vinyl", data?.items, query(params), () =>
+    setPage(1),
+  );
   function change(next) {
     setFilters((f) => ({ ...f, ...next }));
     setPage(1);
@@ -150,6 +154,7 @@ export default function Inventory() {
           </div>
         )}
         <ErrorMessage error={error} />
+        {bulk.toolbar}
         <div className="record-view-bar">
           <ViewControls value={recordView} onChange={setRecordView} />
         </div>
@@ -160,6 +165,7 @@ export default function Inventory() {
             view={recordView}
             rows={data?.items}
             columns={[
+              ...bulk.selectionColumns,
               {
                 key: "rollNumber",
                 label: "شمارهٔ رول",
@@ -257,6 +263,7 @@ export default function Inventory() {
         )}
         <Pagination data={data} onChange={setPage} />
       </section>
+      {bulk.dialog}
       {canManage && delivery && (
         <DeliveryForm onClose={() => setDelivery(false)} />
       )}

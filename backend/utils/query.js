@@ -28,6 +28,8 @@ export function dateRange(from, to) {
 }
 export function filterFor(kind, q) {
   const filter = kind === "vinyl" ? { archived: false } : {};
+  if (kind === "customers" && q.archived !== "all")
+    filter.archived = q.archived === "true" ? true : { $ne: true };
   const fields =
     kind === "vinyl"
       ? ["vinylName", "type", "color"]

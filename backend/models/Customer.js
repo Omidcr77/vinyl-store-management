@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const schema = new mongoose.Schema(
   {
     ...actorSchema,
+    archived: { type: Boolean, default: false, index: true },
     name: { type: String, required: true, trim: true, index: true },
     phone: { type: String, required: true, trim: true, index: true },
     address: { type: String, default: "" },

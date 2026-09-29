@@ -60,7 +60,10 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
     "one-time bootstrap, direct login and optional password change",
     async () => {
       await bootstrapAdmin({ username: "owner", name: "Owner", password });
-      await User.updateOne({username:'owner'},{$set:{mustChangePassword:true}});
+      await User.updateOne(
+        { username: "owner" },
+        { $set: { mustChangePassword: true } },
+      );
       await assert.rejects(
         bootstrapAdmin({ username: "owner2", name: "Other", password }),
       );
@@ -132,20 +135,45 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
       }
     },
   );
-  await t.test('session duration is admin-configurable and applies to every role', async()=>{
-    const settings=(await admin.call('get','/api/settings').expect(200)).body.data;
-    for(const value of [0,4,10081,5.5]) await admin.call('put','/api/settings').send({...settings,sessionTimeoutMinutes:value}).expect(400);
-    await admin.call('put','/api/settings').send({...settings,sessionTimeoutMinutes:15}).expect(200);
-    for(const [name,pass] of [['owner','Permanent-password-123'],['staff','staff-permanent-password'],['manager','manager-permanent-password']]) {
-      const session=await login(name,pass);
-      const stored=await LoginSession.findOne({userId:session.user._id}).sort({createdAt:-1});
-      assert.ok(Math.abs((stored.expiresAt-stored.createdAt)-15*60000)<2000);
-      await LoginSession.updateOne({_id:stored._id},{$set:{expiresAt:new Date(Date.now()-1000)}});
-      await session.call('get','/api/auth/session').expect(401);
-    }
-    await admin.call('put','/api/settings').send({...settings,sessionTimeoutMinutes:480}).expect(200);
-    await admin.call('get','/api/customers').expect(200); // Existing sessions retain their lifetime.
-  });
+  await t.test(
+    "session duration is admin-configurable and applies to every role",
+    async () => {
+      const settings = (await admin.call("get", "/api/settings").expect(200))
+        .body.data;
+      for (const value of [0, 4, 10081, 5.5])
+        await admin
+          .call("put", "/api/settings")
+          .send({ ...settings, sessionTimeoutMinutes: value })
+          .expect(400);
+      await admin
+        .call("put", "/api/settings")
+        .send({ ...settings, sessionTimeoutMinutes: 15 })
+        .expect(200);
+      for (const [name, pass] of [
+        ["owner", "Permanent-password-123"],
+        ["staff", "staff-permanent-password"],
+        ["manager", "manager-permanent-password"],
+      ]) {
+        const session = await login(name, pass);
+        const stored = await LoginSession.findOne({
+          userId: session.user._id,
+        }).sort({ createdAt: -1 });
+        assert.ok(
+          Math.abs(stored.expiresAt - stored.createdAt - 15 * 60000) < 2000,
+        );
+        await LoginSession.updateOne(
+          { _id: stored._id },
+          { $set: { expiresAt: new Date(Date.now() - 1000) } },
+        );
+        await session.call("get", "/api/auth/session").expect(401);
+      }
+      await admin
+        .call("put", "/api/settings")
+        .send({ ...settings, sessionTimeoutMinutes: 480 })
+        .expect(200);
+      await admin.call("get", "/api/customers").expect(200); // Existing sessions retain their lifetime.
+    },
+  );
   await t.test(
     "staff cannot change inventory or see costs, but can record sales and receipts with trusted attribution",
     async () => {
@@ -230,7 +258,8 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
           .data.vinylId?.costPrice,
         undefined,
       );
-      await admin.call("delete", `/api/sales/${sale._id}`).expect(404);
+      await staff.call("delete", `/api/sales/${sale._id}`).expect(403);
+      await admin.call("delete", `/api/sales/${sale._id}`).expect(200);
     },
   );
   await t.test(
@@ -304,22 +333,18 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
       });
       const second = await login("secondadmin");
       const results = await Promise.all([
-        admin
-          .call("put", `/api/users/${admin.user._id}`)
-          .send({
-            username: "owner",
-            name: "Owner",
-            role: "manager",
-            active: true,
-          }),
-        second
-          .call("put", `/api/users/${other._id}`)
-          .send({
-            username: "secondadmin",
-            name: "Second",
-            role: "manager",
-            active: true,
-          }),
+        admin.call("put", `/api/users/${admin.user._id}`).send({
+          username: "owner",
+          name: "Owner",
+          role: "manager",
+          active: true,
+        }),
+        second.call("put", `/api/users/${other._id}`).send({
+          username: "secondadmin",
+          name: "Second",
+          role: "manager",
+          active: true,
+        }),
       ]);
       assert.deepEqual(results.map((r) => r.status).sort(), [200, 409]);
       assert.equal(

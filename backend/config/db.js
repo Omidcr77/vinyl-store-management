@@ -1,3 +1,4 @@
+import DeletedRecord from "../models/DeletedRecord.js";
 import mongoose from "mongoose";
 import Settings from "../models/Settings.js";
 import VinylRoll from "../models/VinylRoll.js";
@@ -20,6 +21,7 @@ export async function connectDB(uri) {
     );
   await Promise.all(
     [
+      DeletedRecord,
       Settings,
       VinylRoll,
       Customer,
@@ -28,10 +30,17 @@ export async function connectDB(uri) {
       Counter,
       CustomerPrice,
       Delivery,
-      User, LoginSession, AuditEvent, AuthGuard,
+      User,
+      LoginSession,
+      AuditEvent,
+      AuthGuard,
     ].map((model) => model.init()),
   );
-  await AuthGuard.updateOne({_id:"users"},{$setOnInsert:{revision:0}},{upsert:true});
+  await AuthGuard.updateOne(
+    { _id: "users" },
+    { $setOnInsert: { revision: 0 } },
+    { upsert: true },
+  );
   await Settings.updateOne(
     { _id: "store" },
     { $setOnInsert: { storeName: "فرش و قالین فروشی" } },

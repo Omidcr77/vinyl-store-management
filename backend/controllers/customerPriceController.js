@@ -26,8 +26,15 @@ export async function priceSave(req, res) {
   const customerId = id.parse(req.params.id);
   required(await Customer.exists({ _id: customerId }));
   const input = customerPriceInput.parse(req.body);
-  const data = await transaction((session) =>
-    CustomerPrice.findOneAndUpdate(
+  const data = await transaction(async (session) => {
+    required(
+      await Customer.findByIdAndUpdate(
+        customerId,
+        { $inc: { __v: 1 } },
+        { new: true, session },
+      ),
+    );
+    return CustomerPrice.findOneAndUpdate(
       { customerId, type: input.type, pricingMethod: input.pricingMethod },
       {
         $set: { unitPrice: input.unitPrice, ...actorFields() },
@@ -37,8 +44,8 @@ export async function priceSave(req, res) {
         },
       },
       { upsert: true, new: true, runValidators: true, session },
-    ),
-  );
+    );
+  });
   req.app.get("io")?.emit("store:changed");
   res.json({ success: true, data });
 }

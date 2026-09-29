@@ -1,3 +1,4 @@
+import { randomUUID } from "../utils/uuid";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, Plus } from "lucide-react";
@@ -9,7 +10,7 @@ import SaleLine, { lineTotal } from "../components/SaleLine";
 import { Modal, Field, ErrorMessage, Loading } from "../components/UI";
 import { number, today } from "../utils/format";
 const blank = () => ({
-  id: crypto.randomUUID(),
+  id: randomUUID(),
   roll: null,
   length: "",
   price: "",
@@ -27,7 +28,7 @@ export default function NewSale({ onClose }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [ready, setReady] = useState(false);
-  const key = useRef(crypto.randomUUID());
+  const key = useRef(randomUUID());
   const update = useCallback(
     (id, changes) =>
       setItems((rows) =>

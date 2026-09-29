@@ -1668,3 +1668,7 @@ dialog::backdrop {
     display: block;
   }
 }
+
+.bulk-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 0; }
+.bulk-actions label { display: inline-flex; align-items: center; gap: 8px; }
+.bulk-actions input[type="checkbox"], td input[type="checkbox"], .record-card input[type="checkbox"] { width: 18px; height: 18px; accent-color: #287465; cursor: pointer; }

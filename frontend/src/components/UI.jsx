@@ -239,7 +239,7 @@ export function SearchInput({
   );
 }
 export function ExportButtons({ kind, params = {} }) {
-  const {canManage}=useAuth();
+  const { canManage } = useAuth();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function run(format) {
@@ -253,7 +253,7 @@ export function ExportButtons({ kind, params = {} }) {
       setBusy(false);
     }
   }
-  if(!canManage)return null;
+  if (!canManage) return null;
   return (
     <>
       <div className="export-buttons">
@@ -295,7 +295,13 @@ export function Modal({ title, onClose, children, className }) {
     document.body,
   );
 }
-export function ConfirmDialog({ title, message, onConfirm, onClose }) {
+export function ConfirmDialog({
+  title,
+  message,
+  onConfirm,
+  onClose,
+  confirmLabel = "بایگانی رول",
+}) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   return (
@@ -318,7 +324,7 @@ export function ConfirmDialog({ title, message, onConfirm, onClose }) {
             }
           }}
         >
-          <DeleteIcon /> بایگانی رول
+          <DeleteIcon /> {confirmLabel}
         </button>
       </div>
     </Modal>

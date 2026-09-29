@@ -1,3 +1,4 @@
+import { useBulkDelete } from "../components/BulkDelete";
 import { Photo } from "../components/ImagePicker";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -19,12 +20,16 @@ export default function Customers() {
   const [recordView, setRecordView] = useRecordView("customers");
   const [search, setSearch] = useState(""),
     [hasBalance, setHasBalance] = useState(""),
+    [archived, setArchived] = useState(""),
     [page, setPage] = useState(1),
     [add, setAdd] = useState(false),
     { money } = useStore();
   const debounced = useDebounce(search),
-    params = { search: debounced, hasBalance, page, order: "asc" },
+    params = { search: debounced, hasBalance, archived, page, order: "asc" },
     { data, error, loading } = useResource(`/customers?${query(params)}`);
+  const bulk = useBulkDelete("customers", data?.items, query(params), () =>
+    setPage(1),
+  );
   return (
     <>
       <PageHeading
@@ -48,6 +53,18 @@ export default function Customers() {
             placeholder="جستجوی نام یا شمارهٔ تماس مشتری…"
           />
           <select
+            aria-label="وضعیت مشتری"
+            value={archived}
+            onChange={(e) => {
+              setArchived(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">مشتریان فعال</option>
+            <option value="true">مشتریان حذف‌شده</option>
+            <option value="all">همهٔ مشتریان</option>
+          </select>
+          <select
             aria-label="فیلتر باقی‌داری مشتری"
             value={hasBalance}
             onChange={(e) => {
@@ -61,6 +78,7 @@ export default function Customers() {
           </select>
         </div>
         <ErrorMessage error={error} />
+        {bulk.toolbar}
         <div className="record-view-bar">
           <ViewControls value={recordView} onChange={setRecordView} />
         </div>
@@ -71,6 +89,8 @@ export default function Customers() {
             view={recordView}
             rows={data?.items}
             columns={[
+              ...bulk.selectionColumns,
+              ...bulk.deleteColumns,
               {
                 key: "name",
                 label: "مشتری",
@@ -94,8 +114,8 @@ export default function Customers() {
                 ),
               },
               {
-                key: "actions",
-                label: "",
+                key: "account",
+                label: "حساب",
                 render: (r) => (
                   <Link className="text-link" to={`/customers/${r._id}`}>
                     مشاهدهٔ حساب <ArrowUpRight size={16} />
@@ -107,6 +127,7 @@ export default function Customers() {
         )}
         <Pagination data={data} onChange={setPage} />
       </section>
+      {bulk.dialog}
       {add && <CustomerForm onClose={() => setAdd(false)} />}
     </>
   );

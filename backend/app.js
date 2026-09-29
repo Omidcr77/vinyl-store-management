@@ -1,14 +1,12 @@
+import backupRoutes from "./routes/backup.js";
+import { maintenanceGate } from "./services/maintenanceService.js";
 import express from "express";
 import cors from "cors";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { uploadsDirectory } from "./config/storage.js";
 import authRoutes, { usersRouter, auditRouter } from "./routes/auth.js";
-import {
-  requireAuth,
-  csrf,
-  staffPrivacy,
-} from "./middleware/auth.js";
+import { requireAuth, csrf, staffPrivacy } from "./middleware/auth.js";
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
@@ -25,12 +23,14 @@ export function createApp() {
       });
     next();
   });
+  app.use("/api", maintenanceGate);
   app.use(express.json({ limit: "1mb" }));
   app.get("/api/health", (req, res) =>
     res.json({ success: true, data: { status: "ok" } }),
   );
   app.use("/api/auth", authRoutes);
   app.use("/api", requireAuth, csrf, staffPrivacy);
+  app.use("/api/backup", backupRoutes);
   app.use("/api/users", usersRouter);
   app.use("/api/audit", auditRouter);
   app.use(

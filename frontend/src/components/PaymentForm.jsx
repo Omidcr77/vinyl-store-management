@@ -1,3 +1,4 @@
+import { randomUUID } from "../utils/uuid";
 import { useState, useRef } from "react";
 import { api } from "../services/api";
 import { useStore } from "../services/store";
@@ -5,7 +6,7 @@ import { Modal, Field, ErrorMessage } from "./UI";
 import { formValues, today } from "../utils/format";
 export default function PaymentForm({ customer, onClose }) {
   const { money, refresh, notice } = useStore(),
-    key = useRef(crypto.randomUUID()),
+    key = useRef(randomUUID()),
     [busy, setBusy] = useState(false),
     [amount, setAmount] = useState(""),
     [error, setError] = useState("");

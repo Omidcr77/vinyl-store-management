@@ -1,3 +1,4 @@
+import { randomUUID } from "../utils/uuid";
 import { useRef, useState } from "react";
 import DeleteIcon from "./DeleteIcon";
 import ImagePicker, { Photo } from "./ImagePicker";
@@ -7,7 +8,7 @@ import { Modal, Field, ErrorMessage, Table } from "./UI";
 import { number, today } from "../utils/format";
 
 const blank = (width) => ({
-  id: crypto.randomUUID(),
+  id: randomUUID(),
   vinylName: "",
   type: "",
   color: "",
@@ -98,7 +99,7 @@ export default function DeliveryForm({ onClose }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [attempted, setAttempted] = useState(false);
-  const key = useRef(crypto.randomUUID());
+  const key = useRef(randomUUID());
   const close = () => {
     if (!busy && !uploading) onClose();
   };
@@ -188,7 +189,7 @@ export default function DeliveryForm({ onClose }) {
   const draftTotal = rows.reduce((sum, row) => sum + count(row), 0);
   function addGroup(copy) {
     const next = copy
-      ? { ...copy, id: crypto.randomUUID() }
+      ? { ...copy, id: randomUUID() }
       : blank(settings?.defaultVinylWidth);
     setRows((current) => [...current, next]);
     setActive(next.id);

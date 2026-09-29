@@ -76,15 +76,17 @@ export function StoreProvider({ children }) {
   );
 }
 export const useStore = () => useContext(Context);
-export function useResource(path) {
+export function useResource(path, enabled = true) {
   const { version } = useStore();
   const [state, setState] = useState({ data: null, error: "", loading: true });
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     let retryTimer;
+    const controller = new AbortController();
     setState((s) => ({ ...s, error: "", loading: true }));
     const load = () =>
-      api(path)
+      api(path, { signal: controller.signal })
         .then((data) => {
           if (active) setState({ data, error: "", loading: false });
         })
@@ -101,9 +103,10 @@ export function useResource(path) {
     load();
     return () => {
       active = false;
+      controller.abort();
       clearTimeout(retryTimer);
     };
-  }, [path, version]);
+  }, [path, version, enabled]);
   return state;
 }
 export function useDebounce(value, delay = 250) {
