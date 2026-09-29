@@ -228,3 +228,30 @@ test("large multi-item invoice produces a real paginated A4 PDF", async () => {
     (pdf.body.toString("latin1").match(/\/Type\s*\/Page\b/g) || []).length > 1,
   );
 });
+
+test("stock lookup excludes selected rolls before pagination and validates IDs", async () => {
+  const a = await roll("Lookup basket A", 10);
+  const b = await roll("Lookup basket B", 10);
+  const c = await roll("Lookup basket C", 10);
+  const result = await request(app)
+    .get("/api/vinyl")
+    .query({
+      search: "Lookup basket",
+      inStock: "true",
+      excludeIds: `${a._id},${b._id}`,
+      limit: 1,
+    })
+    .expect(200);
+  assert.equal(result.body.data.total, 1);
+  assert.equal(result.body.data.pages, 1);
+  assert.equal(result.body.data.items[0]._id, c._id);
+  const restored = await request(app)
+    .get("/api/vinyl")
+    .query({
+      search: "Lookup basket",
+      excludeIds: a._id,
+    })
+    .expect(200);
+  assert.equal(restored.body.data.total, 2);
+  await request(app).get("/api/vinyl?excludeIds=invalid").expect(400);
+});

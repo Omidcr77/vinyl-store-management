@@ -84,6 +84,10 @@ export function filterFor(kind, q) {
       kind === "vinyl" ? "entryDate" : kind === "payments" ? "date" : "soldDate"
     ] = range;
   if (kind === "vinyl") {
+    if (q.excludeIds) {
+      const ids = z.string().max(2499).parse(q.excludeIds).split(",");
+      filter._id = { $nin: z.array(id).max(100).parse(ids) };
+    }
     for (const [param, operator] of [
       ["minLength", "$gte"],
       ["maxLength", "$lte"],

@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { query } from "../services/api";
 import { useDebounce, useResource } from "../services/store";
 import { ErrorMessage, Pagination, SearchInput } from "./UI";
-export default function Lookup({ kind, selected, onSelect }) {
+export default function Lookup({ kind, selected, onSelect, excludedIds = [] }) {
   const [search, setSearch] = useState(""),
     [page, setPage] = useState(1),
     [open, setOpen] = useState(!selected);
+  const excluded = [...excludedIds].sort().join(",");
+  useEffect(() => setPage(1), [excluded]);
   const debounced = useDebounce(search);
   const { data, error } = useResource(
-    `/${kind}?${query({ search: debounced, page, limit: 5, inStock: kind === "vinyl" ? "true" : undefined })}`,
+    `/${kind}?${query({ search: debounced, page, limit: 5, excludeIds: excluded || undefined, inStock: kind === "vinyl" ? "true" : undefined })}`,
   );
   return (
     <div className="lookup">
@@ -53,26 +55,28 @@ export default function Lookup({ kind, selected, onSelect }) {
               مشتری گذری <small>پرداخت کامل ضروری است</small>
             </button>
           )}
-          {data?.items.map((item) => (
-            <button
-              type="button"
-              className="lookup-option"
-              key={item._id}
-              onClick={() => {
-                onSelect(item);
-                setOpen(false);
-              }}
-            >
-              {kind === "vinyl"
-                ? `#${item.rollNumber} · ${item.vinylName}`
-                : item.name}
-              <small>
+          {data?.items
+            .filter((item) => !excludedIds.includes(item._id))
+            .map((item) => (
+              <button
+                type="button"
+                className="lookup-option"
+                key={item._id}
+                onClick={() => {
+                  onSelect(item);
+                  setOpen(false);
+                }}
+              >
                 {kind === "vinyl"
-                  ? `${item.length} متر موجود · ${item.width} متر عرض`
-                  : item.phone}
-              </small>
-            </button>
-          ))}
+                  ? `#${item.rollNumber} · ${item.vinylName}`
+                  : item.name}
+                <small>
+                  {kind === "vinyl"
+                    ? `${item.length} متر موجود · ${item.width} متر عرض`
+                    : item.phone}
+                </small>
+              </button>
+            ))}
           {data?.total === 0 && (
             <p className="muted">موردی مطابق جستجو یافت نشد.</p>
           )}

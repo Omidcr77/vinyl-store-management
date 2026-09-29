@@ -22,6 +22,7 @@ export default function SaleLine({
   onRemove,
   removable,
   available,
+  excludedIds,
 }) {
   const { money } = useStore();
   const { roll, length, method, price, rememberPrice, pricingLoading } = value;
@@ -86,6 +87,7 @@ export default function SaleLine({
       </div>
       <Lookup
         kind="vinyl"
+        excludedIds={excludedIds}
         selected={roll}
         onSelect={(r) => patch({ roll: r, method: "linear", length: "" })}
       />

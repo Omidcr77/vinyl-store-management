@@ -923,7 +923,31 @@ try {
       name: `جنس ${index}`,
       exact: true,
     });
-    await item.getByRole("textbox", { name: "جستجو", exact: true }).fill(name);
+    const stockSearch = item.getByRole("textbox", {
+      name: "جستجو",
+      exact: true,
+    });
+    const stockLoaded = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return (
+        url.pathname === "/api/vinyl" &&
+        url.searchParams.get("search") === "Basket" &&
+        response.ok()
+      );
+    });
+    await stockSearch.fill("Basket");
+    await stockLoaded;
+    await item.getByRole("button", { name: new RegExp(name) }).waitFor();
+    for (const selectedName of index === 2
+      ? ["Basket Red"]
+      : ["Basket Red", "Basket Blue"])
+      assert.equal(
+        await item
+          .getByRole("button", { name: new RegExp(selectedName) })
+          .count(),
+        0,
+      );
+    await stockSearch.fill(name);
     await item.getByRole("button", { name: new RegExp(name) }).click();
     if (index === 2) {
       await item.getByLabel("طول فروخته‌شده (متر)").fill("2");
@@ -1081,18 +1105,27 @@ try {
       await loaded;
     }
     await filterRows(search);
-    await page.getByRole("button", { name: "جدول (پیش‌فرض)", exact: true }).click();
+    await page
+      .getByRole("button", { name: "جدول (پیش‌فرض)", exact: true })
+      .click();
     const rowDelete = page.getByRole("button", {
       name: `${route === "inventory" ? "بایگانی" : "حذف"} ${labels[0]}`,
       exact: true,
     });
     await rowDelete.waitFor();
-    assert.equal(await rowDelete.evaluate((button) => {
-      const cell = button.closest("td");
-      const cells = [...cell.parentElement.children];
-      return cells.every((other) =>
-        cell.getBoundingClientRect().left <= other.getBoundingClientRect().left);
-    }), true, `${route}: delete action must be in the leftmost column`);
+    assert.equal(
+      await rowDelete.evaluate((button) => {
+        const cell = button.closest("td");
+        const cells = [...cell.parentElement.children];
+        return cells.every(
+          (other) =>
+            cell.getBoundingClientRect().left <=
+            other.getBoundingClientRect().left,
+        );
+      }),
+      true,
+      `${route}: delete action must be in the leftmost column`,
+    );
     const deleteSelected = page.getByRole("button", {
       name: "حذف انتخاب‌شده‌ها",
       exact: true,
@@ -1127,11 +1160,15 @@ try {
       ),
       true,
     );
-    assert.equal(await rowDelete.evaluate((button) => {
-      const actions = button.closest(".record-card-actions");
-      const left = button.getBoundingClientRect().left;
-      return Math.abs(left - actions.getBoundingClientRect().left) < 2;
-    }), true, `${route}: delete button must align left in mobile cards`);
+    assert.equal(
+      await rowDelete.evaluate((button) => {
+        const actions = button.closest(".record-card-actions");
+        const left = button.getBoundingClientRect().left;
+        return Math.abs(left - actions.getBoundingClientRect().left) < 2;
+      }),
+      true,
+      `${route}: delete button must align left in mobile cards`,
+    );
     await page.screenshot({
       path: `test-results/bulk-selection-${route}-mobile.png`,
       fullPage: true,

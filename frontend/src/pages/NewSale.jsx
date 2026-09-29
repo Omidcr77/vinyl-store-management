@@ -178,6 +178,9 @@ export default function NewSale({ onClose }) {
                     onRemove={() =>
                       setItems((rows) => rows.filter((r) => r.id !== row.id))
                     }
+                    excludedIds={items
+                      .filter((item) => item.id !== row.id && item.roll)
+                      .map((item) => item.roll._id)}
                     available={availableFor(row)}
                   />
                 ))}
