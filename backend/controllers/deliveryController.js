@@ -17,7 +17,9 @@ const columns = [
 ];
 const aliases = {
   نام: "vinylName",
-  "نام وینیل": "vinylName",
+  "نام فرش و قالین": "vinylName",
+  // Accept the previous template heading when importing older workbooks.
+  "نام \u0648\u06cc\u0646\u06cc\u0644": "vinylName",
   نوع: "type",
   رنگ: "color",
   طول: "length",
@@ -51,13 +53,14 @@ export function receiveWorkbook(req, res, next) {
 }
 export async function deliveryTemplate(req, res) {
   const book = new ExcelJS.Workbook(),
-    sheet = book.addWorksheet("Delivery");
-  sheet.addRow(columns);
-  sheet.addRow(["Vinyl A", "Vinyl", "Brown", 30, 4, 20, "", 10, 15]);
+    sheet = book.addWorksheet("ورود اجناس");
+  sheet.views = [{ rightToLeft: true }];
+  sheet.addRow(["نام فرش و قالین", "نوع", "رنگ", "طول", "عرض", "تعداد", "طول‌ها", "قیمت خرید", "نرخ پیشنهادی", "توضیحات"]);
+  sheet.addRow(["فرش طرح چوب", "فرش", "قهوه‌ای", 30, 4, 20, "", 10, 15]);
   sheet.addRow([
-    "Carpet B",
-    "Carpet",
-    "Red",
+    "قالین گل‌دار",
+    "قالین",
+    "سرخ",
     "",
     3,
     "",

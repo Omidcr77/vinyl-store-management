@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import LoginSession from "../models/LoginSession.js";
 import AuthGuard from "../models/AuthGuard.js";
+import Settings from "../models/Settings.js";
 import { AppError } from "../utils/errors.js";
 import { audit } from "./actor.js";
 const scrypt = promisify(scryptCallback);
@@ -20,7 +21,7 @@ export const publicUser = (u) => ({
   name: u.name,
   role: u.role,
   active: u.active,
-  mustChangePassword: u.mustChangePassword,
+  mustChangePassword: false,
   createdAt: u.createdAt,
   lastLoginAt: u.lastLoginAt,
 });
@@ -104,7 +105,9 @@ export function cookie(res, token, expires) {
 export async function issueSession(res, user) {
   const token = randomBytes(32).toString("hex");
   const csrf = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  const settings = await Settings.findById('store').lean();
+  const minutes = settings?.sessionTimeoutMinutes ?? 480;
+  const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
   await LoginSession.create({
     _id: tokenHash(token),
     userId: user._id,
@@ -140,7 +143,6 @@ export function protectSockets(io, origins) {
       if (origin && !origins.includes(origin))
         throw new Error("Origin rejected");
       const { user, session } = await authenticate(socket.request);
-      if (user.mustChangePassword) throw new Error("Password change required");
       socket.data.userId = String(user._id);
       socket.data.sessionId = session._id;
       socket.data.expiresAt = session.expiresAt;

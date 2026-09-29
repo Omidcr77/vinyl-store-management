@@ -327,7 +327,7 @@ export function ConfirmDialog({ title, message, onConfirm, onClose }) {
 export function BackLink({ to, children }) {
   return (
     <Link className="back-link" to={to}>
-      <ArrowLeft size={15} />
+      <ArrowLeft size={19} aria-hidden="true" />
       {children}
     </Link>
   );

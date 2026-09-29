@@ -26,6 +26,7 @@ const columns = {
     "supplier",
   ],
   sales: [
+    "itemDetails",
     "billNumber",
     "soldDate",
     "customerName",
@@ -68,8 +69,9 @@ const safe = (value) => {
   return /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
 };
 const headers = {
+  itemDetails: "اجناس بل (رول، جنس، نوع، رنگ، ابعاد، نرخ، مبلغ)",
   rollNumber: "شمارهٔ رول",
-  vinylName: "نام وینیل",
+  vinylName: "نام فرش و قالین",
   type: "نوع",
   color: "رنگ",
   length: "طول (متر)",
@@ -107,6 +109,20 @@ const headers = {
   details: "توضیحات",
 };
 const cell = (row, key) => {
+  if (key === "itemDetails")
+    return (row.items?.length ? row.items : [row])
+      .map(
+        (i) =>
+          `#${i.rollNumber} ${i.vinylName} · ${i.type} · ${i.color} · ${i.soldLength} × ${i.width} متر · ${i.pricePerMeter ?? i.pricePerSquareMeter} ${row.currency} / ${i.pricingMethod === "area" ? "متر مربع" : "متر طولی"} · ${i.totalAmount} ${row.currency}`,
+      )
+      .join(" | ");
+  if (
+    row.items?.length > 1 &&
+    ["rollNumber", "width", "pricePerMeter", "pricePerSquareMeter"].includes(
+      key,
+    )
+  )
+    return row.items.map((i) => i[key] ?? "—").join(" / ");
   if (key === "status")
     return (
       { available: "موجود", "low-stock": "کم‌موجود", sold: "تمام‌شده" }[

@@ -242,7 +242,7 @@ export default function Dashboard() {
                   ),
                 },
                 { key: "customerName", label: "مشتری" },
-                { key: "vinylName", label: "وینیل" },
+                { key: "vinylName", label: "فرش و قالین" },
                 {
                   key: "soldLength",
                   label: "طول",

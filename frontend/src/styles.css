@@ -810,10 +810,53 @@ select {
 .back-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #87967c;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #a8c5b8;
+  border-radius: 8px;
+  background: #e6f0ea;
+  font-size: 13px;
+  font-weight: 600;
+  color: #173f32;
+  text-decoration: none;
   margin-bottom: 20px;
+  transition: background-color 150ms, border-color 150ms;
+}
+.back-link:hover {
+  background: #d3e5da;
+  border-color: #648f7a;
+  color: #123327;
+}
+button.logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #a62d2d;
+  border-radius: 8px;
+  background: #b83232;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms;
+}
+button.logout-button:hover {
+  background: #942525;
+  border-color: #802020;
+}
+.back-link:focus-visible,
+button.logout-button:focus-visible {
+  outline: 3px solid #326653;
+  outline-offset: 3px;
+}
+.back-link svg,
+button.logout-button svg {
+  flex-shrink: 0;
 }
 .form-layout {
   display: grid;

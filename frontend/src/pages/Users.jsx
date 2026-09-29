@@ -146,14 +146,14 @@ export default function Users() {
                 </Field>
               )}
               <Field
-                label={edit._id ? "رمز موقت جدید (اختیاری)" : "رمز موقت"}
+                label={edit._id ? "رمز جدید (اختیاری)" : "رمز عبور"}
                 name="password"
                 type="password"
                 required={!edit._id}
                 minLength={12}
                 maxLength={128}
                 autoComplete="new-password"
-                hint="کاربر در ورود بعدی باید این رمز را تغییر دهد."
+                hint="کاربر با همین رمز مستقیماً وارد حساب می‌شود."
               />
             </div>
             <p className="small muted">

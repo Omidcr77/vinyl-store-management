@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Table, Badge } from "./UI";
 import { useStore } from "../services/store";
 import { number } from "../utils/format";
+import { saleItems } from "../../../shared/sale-items.js";
 export default function SaleTable({ rows, view = "table" }) {
   const { date, money } = useStore();
   const [print, setPrint] = useState(null);
@@ -33,11 +34,18 @@ export default function SaleTable({ rows, view = "table" }) {
           { key: "customerName", label: "مشتری" },
           {
             key: "vinylName",
-            label: "وینیل",
+            label: "فرش و قالین",
             render: (r) => (
               <div>
-                <strong>{r.vinylName}</strong>
-                <small className="cell-sub">شمارهٔ رول{r.rollNumber}</small>
+                {saleItems(r).map((item, index) => (
+                  <div key={index}>
+                    <strong>{item.vinylName}</strong>
+                    <small className="cell-sub">
+                      شمارهٔ رول {number(item.rollNumber)} · {item.color} ·{" "}
+                      {number(item.soldLength)} متر
+                    </small>
+                  </div>
+                ))}
               </div>
             ),
           },

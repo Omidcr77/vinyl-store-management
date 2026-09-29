@@ -15,6 +15,7 @@ import {
 } from "../services/authService.js";
 import User from "../models/User.js";
 import AuditEvent from "../models/AuditEvent.js";
+import LoginSession from "../models/LoginSession.js";
 let db, app, server, io, admin, staff, manager;
 const password = "Temporary-password-123";
 async function login(username, pass = password) {
@@ -56,14 +57,15 @@ after(async () => {
 });
 test("authentication, roles, audit and session lifecycle", async (t) => {
   await t.test(
-    "one-time bootstrap and compulsory password change",
+    "one-time bootstrap, direct login and optional password change",
     async () => {
       await bootstrapAdmin({ username: "owner", name: "Owner", password });
+      await User.updateOne({username:'owner'},{$set:{mustChangePassword:true}});
       await assert.rejects(
         bootstrapAdmin({ username: "owner2", name: "Other", password }),
       );
       admin = await login("owner");
-      await admin.call("get", "/api/customers").expect(403);
+      await admin.call("get", "/api/customers").expect(200);
       await admin
         .call("post", "/api/auth/password")
         .send({ currentPassword: password, password: "Permanent-password-123" })
@@ -107,7 +109,7 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
           .send({ username: role, name: role, role, password })
           .expect(201);
         const session = await login(role);
-        await session.call("get", "/api/vinyl").expect(403);
+        await session.call("get", "/api/vinyl").expect(200);
         await session
           .call("post", "/api/auth/password")
           .send({
@@ -130,6 +132,20 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
       }
     },
   );
+  await t.test('session duration is admin-configurable and applies to every role', async()=>{
+    const settings=(await admin.call('get','/api/settings').expect(200)).body.data;
+    for(const value of [0,4,10081,5.5]) await admin.call('put','/api/settings').send({...settings,sessionTimeoutMinutes:value}).expect(400);
+    await admin.call('put','/api/settings').send({...settings,sessionTimeoutMinutes:15}).expect(200);
+    for(const [name,pass] of [['owner','Permanent-password-123'],['staff','staff-permanent-password'],['manager','manager-permanent-password']]) {
+      const session=await login(name,pass);
+      const stored=await LoginSession.findOne({userId:session.user._id}).sort({createdAt:-1});
+      assert.ok(Math.abs((stored.expiresAt-stored.createdAt)-15*60000)<2000);
+      await LoginSession.updateOne({_id:stored._id},{$set:{expiresAt:new Date(Date.now()-1000)}});
+      await session.call('get','/api/auth/session').expect(401);
+    }
+    await admin.call('put','/api/settings').send({...settings,sessionTimeoutMinutes:480}).expect(200);
+    await admin.call('get','/api/customers').expect(200); // Existing sessions retain their lifetime.
+  });
   await t.test(
     "staff cannot change inventory or see costs, but can record sales and receipts with trusted attribution",
     async () => {
@@ -270,8 +286,8 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
         .expect(200);
       await manager.call("get", "/api/customers").expect(401);
       manager = await login("manager", "Replacement-password-123");
-      assert.equal(manager.user.mustChangePassword, true);
-      await manager.call("get", "/api/sales").expect(403);
+      assert.equal(manager.user.mustChangePassword, false);
+      await manager.call("get", "/api/sales").expect(200);
       await manager.call("post", "/api/auth/logout").expect(200);
       await manager.call("get", "/api/auth/session").expect(401);
     },

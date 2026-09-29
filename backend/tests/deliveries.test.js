@@ -26,6 +26,7 @@ const row = {
   vinylName: "Carpet",
   type: "Wool",
   color: "Red",
+  img: "/api/images/11111111-1111-4111-8111-111111111111.webp",
   width: 3,
   length: 30,
   quantity: 150,
@@ -42,6 +43,7 @@ const body = {
       vinylName: "Vinyl",
       type: "Wood",
       color: "Brown",
+      img: "/api/images/22222222-2222-4222-8222-222222222222.webp",
       width: 4,
       lengths: [28, 25.5, 32],
     },
@@ -62,6 +64,8 @@ test("one delivery expands quantities and mixed lengths into independent rolls; 
   assert.equal(rolls.length, 153);
   assert.equal(rolls[0].rollNumber, 1);
   assert.equal(rolls.at(-1).rollNumber, 153);
+  assert.ok(rolls.slice(0, 150).every((r) => r.img === row.img));
+  assert.ok(rolls.slice(150).every((r) => r.img === body.rows[1].img));
   assert.deepEqual(
     rolls.slice(150).map((r) => r.length),
     [28, 25.5, 32],

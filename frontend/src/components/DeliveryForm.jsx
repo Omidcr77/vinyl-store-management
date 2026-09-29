@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import DeleteIcon from "./DeleteIcon";
+import ImagePicker, { Photo } from "./ImagePicker";
 import { api } from "../services/api";
 import { useStore } from "../services/store";
 import { Modal, Field, ErrorMessage, Table } from "./UI";
@@ -18,6 +19,7 @@ const blank = (width) => ({
   costPrice: "",
   sellingPrice: "",
   details: "",
+  img: "",
 });
 const listLengths = (text) =>
   text
@@ -44,6 +46,7 @@ function prepare(rows, shared) {
       color: row.color.trim(),
       width: Number(row.width),
       details: row.details,
+      img: row.img || "",
     };
     if (row.mode === "lengths") {
       result.lengths = listLengths(row.lengths);
@@ -85,6 +88,7 @@ export default function DeliveryForm({ onClose }) {
   const { settings, refresh, notice, money, date } = useStore();
   const [rows, setRows] = useState(() => [blank(settings?.defaultVinylWidth)]);
   const [active, setActive] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [shared, setShared] = useState({
     supplier: "",
     reference: "",
@@ -96,7 +100,7 @@ export default function DeliveryForm({ onClose }) {
     [attempted, setAttempted] = useState(false);
   const key = useRef(crypto.randomUUID());
   const close = () => {
-    if (!busy) onClose();
+    if (!busy && !uploading) onClose();
   };
   const update = (id, field, value) =>
     setRows((current) =>
@@ -120,7 +124,8 @@ export default function DeliveryForm({ onClose }) {
         mode: r.lengths ? "lengths" : "quantity",
       }));
       const existing = rows.filter(
-        (r) => r.vinylName || r.type || r.color || r.length || r.lengths,
+        (r) =>
+          r.vinylName || r.type || r.color || r.length || r.lengths || r.img,
       );
       if (existing.length + imported.length > 200)
         throw new Error("حداکثر 200 ردیف مجاز است.");
@@ -136,6 +141,7 @@ export default function DeliveryForm({ onClose }) {
   }
   function preview(e) {
     e.preventDefault();
+    if (uploading) return;
     setError("");
     try {
       if (!shared.entryDate) throw new Error("تاریخ ورود را وارد کنید.");
@@ -207,6 +213,11 @@ export default function DeliveryForm({ onClose }) {
           <Table
             rows={review.rows.map((r, i) => ({ ...r, _id: i }))}
             columns={[
+              {
+                key: "img",
+                label: "عکس",
+                render: (r) => <Photo src={r.img} name={r.vinylName} />,
+              },
               { key: "vinylName", label: "جنس" },
               { key: "color", label: "رنگ" },
               {
@@ -258,7 +269,7 @@ export default function DeliveryForm({ onClose }) {
         </>
       ) : (
         <form onSubmit={preview} noValidate>
-          <fieldset disabled={busy} className="delivery-fields">
+          <fieldset disabled={busy || uploading} className="delivery-fields">
             {rows.map((row, i) => {
               const expanded = (active || rows[0]?.id) === row.id;
               return (
@@ -273,6 +284,7 @@ export default function DeliveryForm({ onClose }) {
                     aria-expanded={expanded}
                     onClick={() => setActive(row.id)}
                   >
+                    {row.img && <Photo src={row.img} name={row.type} />}
                     <strong>
                       {row.type || `جنس ${i + 1}`}
                       {row.color ? ` · ${row.color}` : ""}
@@ -287,7 +299,7 @@ export default function DeliveryForm({ onClose }) {
                       <div className="delivery-grid">
                         <Field
                           label="نوع"
-                          placeholder="مثلاً وینیل چوبی یا قالین"
+                          placeholder="مثلاً فرش طرح چوب یا قالین"
                           required
                           maxLength={200}
                           value={row.type}
@@ -384,6 +396,17 @@ export default function DeliveryForm({ onClose }) {
                           </small>
                         </Field>
                       )}
+                      <div className="delivery-group-photo">
+                        <ImagePicker
+                          defaultValue={row.img}
+                          onChange={(value) => update(row.id, "img", value)}
+                          onBusy={setUploading}
+                        />
+                        <p>
+                          این عکس برای تمام رول‌های این جنس استفاده می‌شود. برای
+                          رنگ دیگر می‌توانید عکس جداگانه انتخاب کنید.
+                        </p>
+                      </div>
                       <details className="delivery-extra">
                         <summary>
                           نام خاص، قیمت فروش و یادداشت (اختیاری)

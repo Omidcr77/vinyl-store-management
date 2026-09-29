@@ -57,7 +57,7 @@ export default function RollForm({ onClose }) {
           <BackLink to="/inventory">برگشت به موجودی</BackLink>
           <PageHeading
             eyebrow="موجودی"
-            title={id ? "ویرایش رول وینیل" : "افزودن رکورد"}
+            title={id ? "ویرایش رول فرش و قالین" : "افزودن رکورد"}
             description="مشخصات رول را وارد کنید. شمارهٔ رول خودکار تعیین می‌شود."
           />
         </>
@@ -82,7 +82,7 @@ export default function RollForm({ onClose }) {
               <div className="form-grid">
                 <ImagePicker defaultValue={roll.img} onBusy={setUploading} />
                 <Field
-                  label="نام وینیل"
+                  label="نام فرش و قالین"
                   name="vinylName"
                   required
                   defaultValue={roll.vinylName}

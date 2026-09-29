@@ -20,7 +20,7 @@ export function Photo({ src, name, large = false }) {
     </span>
   );
 }
-export default function ImagePicker({ defaultValue = "", onBusy }) {
+export default function ImagePicker({ defaultValue = "", onBusy, onChange }) {
   const [value, setValue] = useState(defaultValue),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -38,6 +38,7 @@ export default function ImagePicker({ defaultValue = "", onBusy }) {
       body.append("image", file);
       const result = await api("/images", { method: "POST", body });
       setValue(result.url);
+      onChange?.(result.url);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -62,7 +63,14 @@ export default function ImagePicker({ defaultValue = "", onBusy }) {
       {value && (
         <div>
           <Photo src={value} name="عکس انتخاب‌شده" large />
-          <button type="button" disabled={busy} onClick={() => setValue("")}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setValue("");
+              onChange?.("");
+            }}
+          >
             <DeleteIcon /> حذف عکس
           </button>
         </div>

@@ -30,7 +30,7 @@ try {
     // Verify output can be written before committing the bootstrap account.
     await writeFile(
       file,
-      `Username: ${credentials.username}\nTemporary password: ${credentials.password}\nChange this password on first login, then delete this file.\n`,
+      `Username: ${credentials.username}\nTemporary password: ${credentials.password}\nKeep this password private and delete this file after setup.\n`,
       { flag: "wx", mode: 0o600 },
     );
   }
@@ -38,7 +38,7 @@ try {
   console.log(
     file
       ? `First admin created. Credentials saved locally: ${file}`
-      : "First admin created. Change the temporary password on first login.",
+      : "First admin created. Log in with the configured password.",
   );
 } catch (error) {
   if (file) await unlink(file).catch(() => {});

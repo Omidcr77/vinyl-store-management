@@ -1,5 +1,18 @@
 /* Dari layout. ISO dates, telephone numbers and invoice identifiers retain LTR order. */
-.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: linear-gradient(135deg, #173c32, #476447); }
+.sale-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.sale-line-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.sale-line-heading h3 { margin: 0; }
+.sale-remove { color: #a32929; border-color: #e8bcbc; background: #fff4f4; }
+.sale-remove:hover { background: #ffe5e5; }
+.sale-line-total { display: flex; flex-direction: column; justify-content: center; gap: 5px; background: #f1f6f2; border-radius: 8px; padding: 12px; }
+.sale-line-total strong { color: #244c40; font-size: 18px; }
+.sale-line-total small { color: #65776b; }
+.sale-add-item { width: 100%; border: 1px dashed #719480; color: #244c40; background: #edf4ef; min-height: 46px; }
+.sale-items-heading { padding: 0 4px; }
+.sale-items-heading h2 { font-size: 17px; }
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; isolation: isolate; position: relative; background: radial-gradient(ellipse at 15% 20%, #e2ebe6 0, transparent 50%), radial-gradient(ellipse at 90% 85%, #e9e2d7 0, transparent 48%), #f3f4f1; }
+.login-page::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background-image: linear-gradient(#23483b06 1px, transparent 1px), linear-gradient(90deg, #23483b06 1px, transparent 1px); background-size: 56px 56px; }
+.login-page .login-card { border: 1px solid #ffffff; box-shadow: 0 24px 80px #173c3214, 0 2px 8px #173c3208; }
 .login-card { width: 100%; max-width: 440px; padding: 32px; border-radius: 16px; background: #fff; box-shadow: 0 15px 65px #102d2540; }
 .login-card h1 { font-size: 25px; margin-bottom: 12px; }
 .login-card p { margin-bottom: 16px; }

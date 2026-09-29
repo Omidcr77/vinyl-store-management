@@ -1,111 +1,104 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Check } from "lucide-react";
-import { api, query } from "../services/api";
+import { Check, Plus } from "lucide-react";
+import Decimal from "decimal.js";
+import { api } from "../services/api";
 import { useStore } from "../services/store";
 import Lookup from "../components/Lookup";
+import SaleLine, { lineTotal } from "../components/SaleLine";
 import { Modal, Field, ErrorMessage, Loading } from "../components/UI";
 import { number, today } from "../utils/format";
-import Decimal from "decimal.js";
+const blank = () => ({
+  id: crypto.randomUUID(),
+  roll: null,
+  length: "",
+  price: "",
+  method: "linear",
+  rememberPrice: false,
+  pricingLoading: false,
+});
 export default function NewSale({ onClose }) {
   const [params] = useSearchParams(),
     navigate = useNavigate(),
     { money, refresh, notice } = useStore();
-  const [roll, setRoll] = useState(null),
+  const [items, setItems] = useState(() => [blank()]),
     [customer, setCustomer] = useState(null),
-    [length, setLength] = useState(""),
-    [price, setPrice] = useState(""),
-    [method, setMethod] = useState("linear"),
     [paid, setPaid] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [ready, setReady] = useState(false);
-  const [rememberPrice, setRememberPrice] = useState(false);
-  const [pricingLoading, setPricingLoading] = useState(false);
-  const [priceSource, setPriceSource] = useState("");
-  const [priceError, setPriceError] = useState("");
   const key = useRef(crypto.randomUUID());
+  const update = useCallback(
+    (id, changes) =>
+      setItems((rows) =>
+        rows.map((r) => (r.id === id ? { ...r, ...changes } : r)),
+      ),
+    [],
+  );
   useEffect(() => {
+    let active = true;
     Promise.all([
       params.get("vinylId")
-        ? api(`/vinyl/${params.get("vinylId")}`).then((r) => {
-            setRoll(r);
+        ? api(`/vinyl/${params.get("vinylId")}`).then((roll) => {
+            if (active) setItems((rows) => [{ ...rows[0], roll }]);
           })
         : null,
       params.get("customerId")
-        ? api(`/customers/${params.get("customerId")}`).then((r) =>
-            setCustomer(r.customer),
-          )
+        ? api(`/customers/${params.get("customerId")}`).then((r) => {
+            if (active) setCustomer(r.customer);
+          })
         : null,
     ])
-      .catch((e) => setError(e.message))
-      .finally(() => setReady(true));
-  }, [params]);
-  useEffect(() => {
-    let active = true;
-    setRememberPrice(false);
-    setPriceError("");
-    setPrice("");
-    if (!roll) {
-      setPricingLoading(false);
-      return;
-    }
-    const fallback = method === "linear" ? (roll.sellingPrice ?? "") : "";
-    const fallbackSource =
-      fallback === ""
-        ? "نرخ این فروش را وارد کنید."
-        : "نرخ پیشنهادی رول؛ می‌توانید آن را برای این مشتری تغییر دهید.";
-    setPrice(fallback);
-    setPriceSource(fallbackSource);
-    if (!customer) {
-      setPricingLoading(false);
-      return;
-    }
-    setPricingLoading(true);
-    api(
-      `/customers/${customer._id}/prices?${query({ type: roll.type, pricingMethod: method, limit: 1 })}`,
-    )
-      .then((result) => {
-        if (!active) return;
-        if (result.items[0]) {
-          setPrice(result.items[0].unitPrice);
-          setPriceSource(
-            `نرخ ذخیره‌شدهٔ ${customer.name} برای نوع «${roll.type}». قابل تغییر برای این فروش است.`,
-          );
-        }
-      })
-      .catch(() => {
-        if (active)
-          setPriceError(
-            "نرخ ذخیره‌شده دریافت نشد. نرخ را بررسی کرده یا دستی وارد کنید.",
-          );
+      .catch((e) => {
+        if (active) setError(e.message);
       })
       .finally(() => {
-        if (active) setPricingLoading(false);
+        if (active) setReady(true);
       });
     return () => {
       active = false;
     };
-  }, [customer?._id, roll?._id, method]);
-  const area = new Decimal(length || 0).times(roll?.width || 0).toNumber(),
-    total = new Decimal(method === "area" ? area : length || 0)
-      .times(price || 0)
-      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-      .toNumber(),
-    unpaid = new Decimal(total).minus(paid || 0).toNumber(),
-    creditApplied = Math.min(
-      Math.max(0, unpaid),
-      Math.max(0, -(customer?.balance || 0)),
-    ),
-    due = new Decimal(unpaid).minus(creditApplied).toNumber();
+  }, [params]);
+  const total = items
+    .reduce((n, r) => n.plus(lineTotal(r)), new Decimal(0))
+    .toNumber();
+  const area = items
+    .reduce(
+      (n, r) => n.plus(new Decimal(r.length || 0).times(r.roll?.width || 0)),
+      new Decimal(0),
+    )
+    .toNumber();
+  const length = items
+    .reduce((n, r) => n.plus(r.length || 0), new Decimal(0))
+    .toNumber();
+  const unpaid = new Decimal(total).minus(paid || 0).toNumber();
+  const creditApplied = Math.min(
+    Math.max(0, unpaid),
+    Math.max(0, -(customer?.balance || 0)),
+  );
+  const due = new Decimal(unpaid).minus(creditApplied).toNumber();
+  const availableFor = (row) =>
+    Math.max(
+      0,
+      new Decimal(row.roll?.length || 0)
+        .minus(
+          items
+            .filter((r) => r.id !== row.id && r.roll?._id === row.roll?._id)
+            .reduce((sum, r) => sum.plus(r.length || 0), new Decimal(0)),
+        )
+        .toNumber(),
+    );
   async function submit(e) {
     e.preventDefault();
     setError("");
-    if (!roll) return setError("نخست یک رول وینیل را انتخاب کنید.");
-    if (Number(length) > roll.length)
+    if (items.some((r) => !r.roll))
+      return setError("برای هر جنس یک رول را انتخاب کنید.");
+    const invalid = items.find((r) => Number(r.length) > availableFor(r));
+    if (invalid)
       return setError(
-        `فقط ${roll.length} متر در رول شمارهٔ ${roll.rollNumber} باقی مانده است.`,
+        `طول انتخاب‌شده از موجودی رول شمارهٔ ${invalid.roll.rollNumber} بیشتر است.`,
       );
+    if (items.some((r) => r.pricingLoading)) return;
     setBusy(true);
     const form = new FormData(e.currentTarget);
     try {
@@ -113,22 +106,24 @@ export default function NewSale({ onClose }) {
         method: "POST",
         headers: { "Idempotency-Key": key.current },
         body: {
-          vinylId: roll._id,
           ...(customer ? { customerId: customer._id } : {}),
-          soldLength: Number(length),
-          pricingMethod: method,
-          unitPrice: Number(price),
+          items: items.map((r) => ({
+            vinylId: r.roll._id,
+            soldLength: Number(r.length),
+            pricingMethod: r.method,
+            unitPrice: Number(r.price),
+            rememberPrice: Boolean(customer && r.rememberPrice),
+          })),
           paidAmount: Number(paid || 0),
           soldDate: form.get("soldDate"),
           notes: form.get("notes"),
-          rememberPrice: Boolean(customer && rememberPrice),
         },
       });
       refresh();
       notice("فروش تکمیل شد. موجودی و باقی‌داری به‌روز گردید.");
       navigate(`/sales/${sale._id}`);
-    } catch (err) {
-      setError(err.message);
+    } catch (e) {
+      setError(e.message);
       setBusy(false);
     }
   }
@@ -140,217 +135,181 @@ export default function NewSale({ onClose }) {
         if (!busy) onClose();
       }}
     >
-      {!ready && <Loading />}
-      {ready && (
+      {!ready ? (
+        <Loading />
+      ) : (
         <form onSubmit={submit}>
-          <div className="sale-layout">
-            <div className="sale-fields">
-              <section className="panel form-panel">
-                <h2>
-                  <span className="step">1</span> مشتری
-                </h2>
-                <Lookup
-                  kind="customers"
-                  selected={customer}
-                  onSelect={setCustomer}
-                />
-                <p className="muted">
-                  برای فروش قرضی، انتخاب مشتری ضروری است.{" "}
-                  <Link to="/customers" className="text-link">
-                    افزودن مشتری
-                  </Link>
-                </p>
-              </section>
-              <section className="panel form-panel">
-                <h2>
-                  <span className="step">2</span> وینیل و ابعاد
-                </h2>
-                <Lookup
-                  kind="vinyl"
-                  selected={roll}
-                  onSelect={(r) => {
-                    setRoll(r);
-                    setMethod("linear");
-                  }}
-                />
-                {roll && (
-                  <div className="roll-info">
-                    <span>
-                      {roll.type} · {roll.color}
-                    </span>
-                    <strong>{number(roll.length)} متر موجود</strong>
-                    <span>{number(roll.width)} متر عرض</span>
-                  </div>
-                )}
-                <div className="form-grid">
-                  <Field
-                    label="طول فروخته‌شده (متر)"
-                    name="soldLength"
-                    type="number"
-                    min="0.001"
-                    step="0.001"
-                    max={roll?.length || 1000000}
-                    required
-                    value={length}
-                    onChange={(e) => setLength(e.target.value)}
+          <fieldset className="sale-fieldset" disabled={busy}>
+            <div className="sale-layout">
+              <div className="sale-fields">
+                <section className="panel form-panel">
+                  <h2>
+                    <span className="step">1</span> مشتری
+                  </h2>
+                  <Lookup
+                    kind="customers"
+                    selected={customer}
+                    onSelect={setCustomer}
                   />
-                  <Field label="روش قیمت‌گذاری">
-                    <select
-                      value={method}
-                      onChange={(e) => setMethod(e.target.value)}
-                    >
-                      <option value="linear">فی متر طولی</option>
-                      <option value="area">فی متر مربع</option>
-                    </select>
-                  </Field>
-                  <Field
-                    label={
-                      method === "area"
-                        ? "نرخ مشتری فی متر مربع"
-                        : "نرخ مشتری فی متر طولی"
-                    }
-                    type="number"
-                    required
-                    min="0.01"
-                    max="100000000"
-                    step="0.01"
-                    value={price}
-                    disabled={pricingLoading}
-                    onChange={(e) => {
-                      setPrice(e.target.value);
-                      setPriceSource("نرخ واردشده برای این فروش.");
-                    }}
-                    hint={
-                      pricingLoading ? "در حال دریافت نرخ مشتری…" : priceSource
-                    }
-                  />
-                  <Field
-                    label="تاریخ فروش"
-                    name="soldDate"
-                    type="date"
-                    required
-                    defaultValue={today()}
-                  />
+                  <p className="muted">
+                    برای فروش قرضی، انتخاب مشتری ضروری است.{" "}
+                    <Link to="/customers" className="text-link">
+                      افزودن مشتری
+                    </Link>
+                  </p>
+                </section>
+                <div className="sale-items-heading">
+                  <h2>
+                    <span className="step">2</span> اجناس بل
+                  </h2>
+                  <p className="muted">
+                    هر رول را جدا انتخاب کنید؛ همهٔ اجناس در یک بل ثبت می‌شوند.
+                  </p>
                 </div>
-                <ErrorMessage error={priceError} />
-                {customer && (
-                  <label className="checkbox-field">
-                    <input
-                      type="checkbox"
-                      checked={rememberPrice}
-                      onChange={(e) => setRememberPrice(e.target.checked)}
+                {items.map((row, index) => (
+                  <SaleLine
+                    key={row.id}
+                    value={row}
+                    index={index}
+                    customer={customer}
+                    onChange={update}
+                    removable={items.length > 1}
+                    onRemove={() =>
+                      setItems((rows) => rows.filter((r) => r.id !== row.id))
+                    }
+                    available={availableFor(row)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="button sale-add-item"
+                  disabled={items.length >= 100}
+                  onClick={() => setItems((rows) => [...rows, blank()])}
+                >
+                  <Plus size={18} />
+                  افزودن جنس دیگر
+                </button>
+                <section className="panel form-panel">
+                  <h2>
+                    <span className="step">3</span> پرداخت بل
+                  </h2>
+                  <div className="form-grid">
+                    <Field
+                      label="مبلغ پرداخت‌شده"
+                      type="number"
+                      required
+                      min="0"
+                      step="0.01"
+                      max={total || undefined}
+                      value={paid}
+                      onChange={(e) => setPaid(e.target.value)}
                     />
-                    ذخیرهٔ این نرخ برای این مشتری و این نوع وینیل
-                  </label>
-                )}
-              </section>
-              <section className="panel form-panel">
-                <h2>
-                  <span className="step">3</span> پرداخت
-                </h2>
-                <div className="form-grid">
-                  <Field
-                    label="مبلغ پرداخت‌شده"
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    max={total || undefined}
-                    value={paid}
-                    onChange={(e) => setPaid(e.target.value)}
-                  />
-                  <div className="field">
-                    <span>گزینهٔ سریع</span>
-                    <button
-                      type="button"
-                      onClick={() => setPaid(String(total))}
-                    >
-                      پرداخت کامل
-                    </button>
+                    <div className="field">
+                      <span>گزینهٔ سریع</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaid(String(total))}
+                      >
+                        پرداخت کامل
+                      </button>
+                    </div>
+                    <Field
+                      label="تاریخ فروش"
+                      name="soldDate"
+                      type="date"
+                      required
+                      defaultValue={today()}
+                    />
+                    <Field label="یادداشت‌ها (اختیاری)" className="full">
+                      <textarea name="notes" rows="2" maxLength={3000} />
+                    </Field>
                   </div>
-                  <Field label="یادداشت‌ها (اختیاری)" className="full">
-                    <textarea name="notes" rows="2" maxLength={3000} />
-                  </Field>
-                </div>
-              </section>
-            </div>
-            <aside className="panel sale-summary">
-              <span className="eyebrow">خلاصهٔ فروش</span>
-              <h2>{roll?.vinylName || "فروش جدید شما"}</h2>
-              <p>{customer?.name || "مشتری گذری"}</p>
-              <dl>
-                <div>
-                  <dt>طول برش</dt>
-                  <dd>{number(length)} متر</dd>
-                </div>
-                <div>
-                  <dt>عرض</dt>
-                  <dd>{number(roll?.width)} متر</dd>
-                </div>
-                <div>
-                  <dt>مساحت مجموعی</dt>
-                  <dd>{number(area)} متر مربع</dd>
-                </div>
-                <div>
-                  <dt>موجودی پس از فروش</dt>
-                  <dd>
-                    {number(Math.max(0, (roll?.length || 0) - Number(length)))}{" "}
-                    متر
-                  </dd>
-                </div>
-              </dl>
-              <div className="sale-total">
-                <span>مبلغ مجموعی</span>
-                <strong>{money(total)}</strong>
+                </section>
               </div>
-              <dl>
-                <div>
-                  <dt>مبلغ پرداخت‌شده</dt>
-                  <dd>{money(paid)}</dd>
-                </div>
-                {customer?.balance < 0 && (
-                  <>
-                    <div>
-                      <dt>طلب موجود مشتری</dt>
-                      <dd>{money(-customer.balance)}</dd>
+              <aside className="panel sale-summary">
+                <span className="eyebrow">خلاصهٔ فروش</span>
+                <h2>یک بل برای {number(items.length)} جنس</h2>
+                <p>{customer?.name || "مشتری گذری"}</p>
+                <dl>
+                  {items.map((r, i) => (
+                    <div key={r.id}>
+                      <dt>
+                        {r.roll?.vinylName || `جنس ${i + 1}`}
+                        {r.roll && (
+                          <small className="cell-sub">
+                            رول {number(r.roll.rollNumber)} · {number(r.length)}{" "}
+                            متر
+                          </small>
+                        )}
+                      </dt>
+                      <dd>{money(lineTotal(r))}</dd>
                     </div>
-                    <div>
-                      <dt>استفاده از طلب مشتری</dt>
-                      <dd>{money(creditApplied)}</dd>
-                    </div>
-                  </>
-                )}
-                <div>
-                  <dt>باقی‌داری</dt>
-                  <dd className={due > 0 ? "debt" : ""}>{money(due)}</dd>
+                  ))}
+                  <div>
+                    <dt>مجموع طول</dt>
+                    <dd>{number(length)} متر</dd>
+                  </div>
+                  <div>
+                    <dt>مساحت مجموعی</dt>
+                    <dd>{number(area)} متر مربع</dd>
+                  </div>
+                </dl>
+                <div className="sale-total">
+                  <span>مبلغ مجموعی</span>
+                  <strong>{money(total)}</strong>
                 </div>
-              </dl>
-              <ErrorMessage error={error} />
-              <button
-                className="primary wide"
-                disabled={busy || !roll || pricingLoading}
-              >
-                {busy ? (
-                  "در حال ثبت فروش…"
-                ) : (
-                  <>
-                    <Check size={17} /> تکمیل فروش
-                  </>
-                )}
-              </button>
-              <p className="small muted">
-                با تکمیل فروش، موجودی و باقی‌داری مشتری همزمان به‌روز می‌شوند.
-              </p>
-              <button
-                type="button"
-                className="wide"
-                disabled={busy}
-                onClick={onClose}
-              >
-                انصراف
-              </button>
-            </aside>
-          </div>
+                <dl>
+                  <div>
+                    <dt>مبلغ پرداخت‌شده</dt>
+                    <dd>{money(paid)}</dd>
+                  </div>
+                  {customer?.balance < 0 && (
+                    <>
+                      <div>
+                        <dt>طلب موجود مشتری</dt>
+                        <dd>{money(-customer.balance)}</dd>
+                      </div>
+                      <div>
+                        <dt>استفاده از طلب مشتری</dt>
+                        <dd>{money(creditApplied)}</dd>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <dt>باقی‌داری</dt>
+                    <dd className={due > 0 ? "debt" : ""}>{money(due)}</dd>
+                  </div>
+                </dl>
+                <ErrorMessage error={error} />
+                <button
+                  className="primary wide"
+                  disabled={
+                    busy || items.some((r) => !r.roll || r.pricingLoading)
+                  }
+                >
+                  {busy ? (
+                    "در حال ثبت فروش…"
+                  ) : (
+                    <>
+                      <Check size={17} />
+                      تکمیل فروش
+                    </>
+                  )}
+                </button>
+                <p className="small muted">
+                  تمام اجناس، پرداخت و باقی‌داری مشتری یک‌جا ثبت می‌شوند.
+                </p>
+                <button
+                  type="button"
+                  className="wide"
+                  disabled={busy}
+                  onClick={onClose}
+                >
+                  انصراف
+                </button>
+              </aside>
+            </div>
+          </fieldset>
         </form>
       )}
     </Modal>

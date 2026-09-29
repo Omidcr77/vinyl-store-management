@@ -11,6 +11,7 @@ const schema = new mongoose.Schema(
     defaultVinylWidth: { type: Number, default: 4, min: 0.001 },
     invoiceFooter: { type: String, default: "از خرید شما سپاسگزاریم." },
     revision: { type: Number, default: 0 },
+    sessionTimeoutMinutes: { type: Number, default: 480, min: 5, max: 10080 },
   },
   { timestamps: true },
 );

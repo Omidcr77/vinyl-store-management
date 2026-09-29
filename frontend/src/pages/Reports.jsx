@@ -182,7 +182,7 @@ export default function Reports() {
                 rows={data.items}
                 columns={[
                   { key: "rollNumber", label: "شمارهٔ رول" },
-                  { key: "vinylName", label: "نام وینیل" },
+                  { key: "vinylName", label: "نام فرش و قالین" },
                   {
                     key: "length",
                     label: "طول",

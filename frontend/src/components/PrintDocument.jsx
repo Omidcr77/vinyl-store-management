@@ -1,3 +1,4 @@
+import { saleItems } from "../../../shared/sale-items.js";
 import { useStore } from "../services/store";
 import { Modal, Table } from "./UI";
 import { number, customerName } from "../utils/format";
@@ -64,21 +65,36 @@ export default function PrintDocument({
             },
             {
               key: "vinylName",
-              label: "وینیل",
+              label: "فرش و قالین",
               render: (r) =>
-                `${r.vinylName} (#${r.rollNumber}) · ${r.type} · ${r.color}`,
+                saleItems(r)
+                  .map(
+                    (i) =>
+                      `${i.vinylName} (#${i.rollNumber}) · ${i.type} · ${i.color}`,
+                  )
+                  .join(" / "),
             },
             {
               key: "soldLength",
               label: "ابعاد",
               render: (r) =>
-                `${number(r.soldLength)} × ${number(r.width)} متر / ${number(r.area)} متر مربع`,
+                saleItems(r)
+                  .map(
+                    (i) =>
+                      `${number(i.soldLength)} × ${number(i.width)} متر / ${number(i.area)} متر مربع`,
+                  )
+                  .join(" / "),
             },
             {
               key: "unit",
               label: "نرخ واحد",
               render: (r) =>
-                `${money(r.pricePerMeter ?? r.pricePerSquareMeter, r.currency)}/${r.pricingMethod === "area" ? "متر مربع" : "متر"}`,
+                saleItems(r)
+                  .map(
+                    (i) =>
+                      `${money(i.pricePerMeter ?? i.pricePerSquareMeter, r.currency)}/${i.pricingMethod === "area" ? "متر مربع" : "متر"}`,
+                  )
+                  .join(" / "),
             },
             {
               key: "totalAmount",

@@ -1,3 +1,4 @@
+import { saleItems } from "./sale-items.js";
 import { formatDate } from "./calendar.js";
 // Shared, escaped document markup for the preview, browser printing and PDF.
 const esc = (value) =>
@@ -42,6 +43,8 @@ export const billStyles = `
 .bill-sheet .bill-items small{display:block;color:#566b61;font-size:10px;margin-top:5px;line-height:1.7;overflow-wrap:anywhere}
 .bill-sheet .bill-items tr{break-inside:avoid}
 .bill-sheet .bill-items thead{display:table-header-group}
+.bill-sheet.multi-item-sheet{display:block;min-height:0}
+.bill-sheet.multi-item-sheet .bill-items td{padding:10px 8px}
 .bill-sheet .bill-bottom{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-bottom:30px;align-items:start}
 .bill-sheet .bill-note{border-inline-start:3px solid #d4e1d9;padding-inline-start:12px}
 .bill-sheet .bill-note p{font-size:11px;color:#52675d}
@@ -77,9 +80,11 @@ export function renderStatement({
       ? "از خرید شما سپاسگزاریم."
       : s.invoiceFooter || "از خرید شما سپاسگزاریم.";
   const saleRows = sales
-    .map(
-      (r) =>
-        `<tr><td><bdi dir="ltr">${esc(r.billNumber)}</bdi><small>${esc(date(r.soldDate))}</small></td><td><strong>${esc(r.vinylName)}</strong><small>رول ${number(r.rollNumber)} · ${esc(r.type)} · ${esc(r.color)}</small><small><bdi dir="ltr">${number(r.soldLength)} × ${number(r.width)}</bdi> متر · ${number(r.area)} متر مربع</small></td><td>${money(r.totalAmount)}</td><td>${money(r.paidAmount)}${r.creditApplied > 0 ? `<small>از طلب مشتری: ${money(r.creditApplied)}</small>` : ""}</td><td>${money(r.remainingBalance)}</td></tr>`,
+    .flatMap((r) =>
+      saleItems(r).map(
+        (item, index) =>
+          `<tr><td><bdi dir="ltr">${esc(r.billNumber)}</bdi><small>${esc(date(r.soldDate))}</small></td><td><strong>${esc(item.vinylName)}</strong><small>رول ${number(item.rollNumber)} · ${esc(item.type)} · ${esc(item.color)}</small><small><bdi dir="ltr">${number(item.soldLength)} × ${number(item.width)}</bdi> متر · ${number(item.area)} متر مربع</small></td><td>${index === 0 ? money(r.totalAmount) : "—"}</td><td>${index === 0 ? money(r.paidAmount) : "—"}${index === 0 && r.creditApplied > 0 ? `<small>از طلب مشتری: ${money(r.creditApplied)}</small>` : ""}</td><td>${index === 0 ? money(r.remainingBalance) : "—"}</td></tr>`,
+      ),
     )
     .join("");
   const paymentRows = payments
@@ -153,7 +158,14 @@ export function renderBill({
   );
   const items = receipt
     ? `<colgroup><col style="width:60%"><col style="width:40%"></colgroup><thead><tr><th>پرداخت بابت بل</th><th>مبلغ (${currency})</th></tr></thead><tbody>${(r.allocations || []).map((a) => `<tr><td><bdi dir="ltr">${esc(a.billNumber || a.saleId)}</bdi></td><td>${money(a.amount)}</td></tr>`).join("")}${r.creditAmount > 0 ? `<tr><td>افزوده‌شده به طلب مشتری</td><td>${money(r.creditAmount)}</td></tr>` : ""}</tbody>`
-    : `<colgroup><col style="width:42%"><col style="width:16%"><col style="width:21%"><col style="width:21%"></colgroup><thead><tr><th>شرح جنس</th><th>مقدار</th><th>نرخ واحد</th><th>مبلغ (${currency})</th></tr></thead><tbody><tr><td><strong>${esc(r.vinylName)}</strong><small>رول ${number(r.rollNumber)} · ${esc(r.type)} · ${esc(r.color)}</small><small>طول × عرض: <bdi dir="ltr">${number(r.soldLength)} × ${number(r.width)}</bdi> متر<br>مساحت: ${number(r.area)} متر مربع</small></td><td><bdi dir="ltr">${number(r.pricingMethod === "area" ? r.area : r.soldLength)}</bdi><small>${unit}</small></td><td>${money(r.pricePerMeter ?? r.pricePerSquareMeter)}<small>فی ${unit}</small></td><td><strong>${money(r.totalAmount)}</strong></td></tr></tbody>`;
+    : `<colgroup><col style="width:42%"><col style="width:16%"><col style="width:21%"><col style="width:21%"></colgroup><thead><tr><th>شرح جنس</th><th>مقدار</th><th>نرخ واحد</th><th>مبلغ (${currency})</th></tr></thead><tbody>${saleItems(
+        r,
+      )
+        .map(
+          (item) =>
+            `<tr><td><strong>${esc(item.vinylName)}</strong><small>رول ${number(item.rollNumber)} · ${esc(item.type)} · ${esc(item.color)}</small><small>طول × عرض: <bdi dir="ltr">${number(item.soldLength)} × ${number(item.width)}</bdi> متر<br>مساحت: ${number(item.area)} متر مربع</small></td><td><bdi dir="ltr">${number(item.pricingMethod === "area" ? item.area : item.soldLength)}</bdi><small>${item.pricingMethod === "area" ? "متر مربع" : "متر طولی"}</small></td><td>${money(item.pricePerMeter ?? item.pricePerSquareMeter)}<small>فی ${item.pricingMethod === "area" ? "متر مربع" : "متر طولی"}</small></td><td><strong>${money(item.totalAmount)}</strong></td></tr>`,
+        )
+        .join("")}</tbody>`;
   const totals = receipt
     ? line("مبلغ دریافت‌شده", r.amount, true) +
       (r.balanceBefore != null
@@ -176,7 +188,7 @@ export function renderBill({
       (r.creditApplied ? line("استفاده از طلب مشتری", r.creditApplied) : "") +
       line("پرداخت‌های بعدی", laterPaid) +
       line("باقی‌داری فعلی", r.remainingBalance, true);
-  return `<style>${billStyles}</style><article class="bill-sheet" lang="fa-AF" dir="rtl">
+  return `<style>${billStyles}</style><article class="bill-sheet${!receipt && saleItems(r).length > 1 ? " multi-item-sheet" : ""}" lang="fa-AF" dir="rtl">
     <header class="bill-head"><div class="bill-brand"><h1>${esc(s.storeName || "فرش و قالین فروشی")}</h1>${s.storeAddress ? `<p>${esc(s.storeAddress)}</p>` : ""}${s.phone ? `<p>تماس: <bdi dir="ltr">${esc(s.phone)}</bdi></p>` : ""}</div><div><h2 class="bill-title">${receipt ? "رسید پرداخت" : "بل فروش"}</h2><div class="bill-meta"><span class="bill-label">${receipt ? "شمارهٔ رسید" : "شمارهٔ بل"}</span><bdi class="bill-number">${esc(reference)}</bdi><p>تاریخ: ${esc(date(r.date || r.soldDate))}</p><p>واحد پول: <bdi dir="ltr">${currency}</bdi></p></div></div></header>
     <section class="bill-parties"><div><span class="bill-label">مشخصات مشتری</span><h3 class="bill-customer">${esc(name)}</h3>${r.customerPhone ? `<p>تماس: <bdi dir="ltr">${esc(r.customerPhone)}</bdi></p>` : ""}${r.customerAddress ? `<p>${esc(r.customerAddress)}</p>` : ""}</div><span class="bill-status">${receipt ? "دریافت شد" : r.remainingBalance > 0 ? "دارای باقی‌داری" : "تصفیه‌شده"}</span></section>
     <table class="bill-items">${items}</table>

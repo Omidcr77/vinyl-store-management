@@ -6,7 +6,7 @@ export function errorHandler(error, req, res, next) {
   if (error instanceof ZodError) {
     status = 400;
     const names = {
-      vinylName: "نام وینیل",
+      vinylName: "نام فرش و قالین",
       type: "نوع",
       color: "رنگ",
       length: "طول",

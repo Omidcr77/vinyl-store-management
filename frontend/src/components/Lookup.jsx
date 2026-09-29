@@ -20,7 +20,7 @@ export default function Lookup({ kind, selected, onSelect }) {
               : selected.name
             : kind === "customers"
               ? "مشتری گذری"
-              : "یک رول وینیل انتخاب کنید"}
+              : "یک رول فرش و قالین انتخاب کنید"}
         </strong>
         <button type="button" onClick={() => setOpen((v) => !v)}>
           {open ? "بستن" : "تغییر"}
@@ -36,7 +36,7 @@ export default function Lookup({ kind, selected, onSelect }) {
             }}
             placeholder={
               kind === "vinyl"
-                ? "جستجوی شمارهٔ رول، وینیل یا نوع…"
+                ? "جستجوی شمارهٔ رول، فرش و قالین یا نوع…"
                 : "جستجوی نام یا شمارهٔ تماس…"
             }
           />

@@ -63,7 +63,7 @@ export default function CustomerPrices({ customerId }) {
         <div>
           <h2>نرخ‌های اختصاصی مشتری</h2>
           <p>
-            برای هر نوع وینیل، نرخ فی متر طولی و متر مربع جداگانه تعیین کنید.
+            برای هر نوع فرش و قالین، نرخ فی متر طولی و متر مربع جداگانه تعیین کنید.
           </p>
         </div>
         <button onClick={() => open({})}>افزودن نرخ</button>
@@ -76,7 +76,7 @@ export default function CustomerPrices({ customerId }) {
           rows={data?.items}
           empty="هنوز نرخی برای این مشتری ذخیره نشده است. هنگام فروش نیز می‌توانید نرخ را ذخیره کنید."
           columns={[
-            { key: "type", label: "نوع وینیل" },
+            { key: "type", label: "نوع فرش و قالین" },
             {
               key: "pricingMethod",
               label: "روش قیمت‌گذاری",
@@ -119,7 +119,7 @@ export default function CustomerPrices({ customerId }) {
           <form onSubmit={save}>
             <div className="form-grid">
               <Field
-                label="نوع وینیل"
+                label="نوع فرش و قالین"
                 name="type"
                 required
                 maxLength={200}

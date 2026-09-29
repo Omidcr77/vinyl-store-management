@@ -74,7 +74,7 @@ export const customerInput = z.object({
   address: z.string().trim().max(500).default(""),
   img: image.optional(),
 });
-export const saleInput = z.object({
+const legacySaleInput = z.object({
   vinylId: id,
   customerId: id.optional(),
   soldLength: positive,
@@ -85,6 +85,32 @@ export const saleInput = z.object({
   notes: z.string().max(3000).default(""),
   rememberPrice: z.boolean().optional(),
 });
+const saleItemInput = legacySaleInput.pick({
+  vinylId: true,
+  soldLength: true,
+  pricingMethod: true,
+  unitPrice: true,
+  rememberPrice: true,
+});
+export const saleInput = z.union([
+  legacySaleInput.extend({ items: z.never().optional() }),
+  legacySaleInput
+    .omit({
+      vinylId: true,
+      soldLength: true,
+      pricingMethod: true,
+      unitPrice: true,
+      rememberPrice: true,
+    })
+    .extend({
+      items: z.array(saleItemInput).min(1).max(100),
+      vinylId: z.never().optional(),
+      soldLength: z.never().optional(),
+      pricingMethod: z.never().optional(),
+      unitPrice: z.never().optional(),
+      rememberPrice: z.never().optional(),
+    }),
+]);
 export const customerPriceInput = z.object({
   type: text.min(1),
   pricingMethod: z.enum(["linear", "area"]),
@@ -99,6 +125,7 @@ export const paymentInput = z.object({
   reference: text.default(""),
 });
 export const settingsInput = z.object({
+  sessionTimeoutMinutes: z.number().int().min(5).max(10080).optional(),
   calendar: z.enum(["gregory", "persian"]).optional(),
   storeName: text.min(1),
   storeAddress: z.string().max(500),

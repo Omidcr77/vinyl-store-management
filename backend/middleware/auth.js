@@ -29,11 +29,6 @@ export const allowRoles =
     roles.includes(req.user.role)
       ? next()
       : next(new AppError("اجازهٔ دسترسی به این بخش را ندارید.", 403));
-export function passwordReady(req, res, next) {
-  if (req.user.mustChangePassword)
-    return next(new AppError("نخست رمز عبور خود را تغییر دهید.", 403));
-  next();
-}
 export function staffPrivacy(req, res, next) {
   if (req.user.role !== "staff") return next();
   const original = res.json.bind(res);

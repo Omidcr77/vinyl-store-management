@@ -15,6 +15,7 @@ import {
   DateFilter,
   BackLink,
 } from "../components/UI";
+import SaleItems from "../components/SaleItems";
 import SaleTable from "../components/SaleTable";
 import ViewControls, { useRecordView } from "../components/ViewControls";
 import PrintDocument from "../components/PrintDocument";
@@ -68,7 +69,7 @@ function SalesList({ create }) {
               setSearch(v);
               setPage(1);
             }}
-            placeholder="جستجوی بل، مشتری، وینیل یا رول…"
+            placeholder="جستجوی بل، مشتری، فرش و قالین یا رول…"
           />
           <div className="actions">
             <select
@@ -90,7 +91,7 @@ function SalesList({ create }) {
           <div className="filter-grid">
             <DateFilter {...filters} onChange={change} />
             <Field
-              label="نام وینیل"
+              label="نام فرش و قالین"
               value={filters.vinylName || ""}
               onChange={(e) => change({ vinylName: e.target.value })}
             />
@@ -204,31 +205,8 @@ function Invoice() {
               </Link>
             )}
           </div>
-          <SaleTable rows={[sale]} />
+          <SaleItems sale={sale} />
           <dl className="detail-grid">
-            <div>
-              <dt>نوع / رنگ</dt>
-              <dd>
-                {sale.type} / {sale.color}
-              </dd>
-            </div>
-            <div>
-              <dt>ابعاد</dt>
-              <dd>
-                {number(sale.soldLength)} متر × {number(sale.width)} متر ={" "}
-                {number(sale.area)} متر مربع
-              </dd>
-            </div>
-            <div>
-              <dt>نرخ واحد</dt>
-              <dd>
-                {money(
-                  sale.pricePerMeter ?? sale.pricePerSquareMeter,
-                  sale.currency,
-                )}{" "}
-                / {sale.pricingMethod === "area" ? "متر مربع" : "متر"}
-              </dd>
-            </div>
             <div>
               <dt>یادداشت‌ها</dt>
               <dd>{sale.notes || "—"}</dd>

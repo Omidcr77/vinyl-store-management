@@ -45,6 +45,13 @@ export function devApiProxy(target, { timeoutMs = 15000 } = {}) {
           }),
         );
       };
+      // Upgraded sockets can emit errors after the per-request callback has
+      // finished. Without this listener http-proxy terminates the Vite process.
+      proxy.on('error', (error, req, response) => {
+        if (!transient.has(error.code)) server.config.logger.error(`Store proxy: ${error.message}`);
+        if (typeof response?.writeHead === 'function') unavailable(response);
+        else response?.destroy();
+      });
       server.middlewares.use(async (req, res, next) => {
         if (!matches(req.url)) return next();
         const deadline = Date.now() + timeoutMs;

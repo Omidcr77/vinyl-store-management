@@ -27,7 +27,9 @@ export async function saveRoll(data, id) {
         );
       if (
         (roll.length !== data.length || roll.width !== data.width) &&
-        (await Sale.exists({ vinylId: id }).session(session))
+        (await Sale.exists({
+          $or: [{ vinylId: id }, { "items.vinylId": id }],
+        }).session(session))
       )
         throw new AppError(
           "پس از فروش، ابعاد رول قابل تغییر نیست. برای موجودی تازه، رول جدید ثبت کنید.",
@@ -56,7 +58,11 @@ export async function archiveRoll(id) {
     const roll = required(
       await VinylRoll.findOne({ _id: id, archived: false }).session(session),
     );
-    if (await Sale.exists({ vinylId: id }).session(session))
+    if (
+      await Sale.exists({
+        $or: [{ vinylId: id }, { "items.vinylId": id }],
+      }).session(session)
+    )
       throw new AppError("این رول سابقهٔ فروش دارد و باید محفوظ بماند.");
     roll.archived = true;
     Object.assign(roll, actorFields());

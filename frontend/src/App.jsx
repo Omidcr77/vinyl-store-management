@@ -15,6 +15,7 @@ import {
   ChartNoAxesCombined,
   Settings as SettingsIcon,
   Menu,
+  LogOut,
   X,
 } from "lucide-react";
 import { StoreProvider, useStore } from "./services/store";
@@ -133,9 +134,11 @@ function Shell() {
               حساب من
             </Link>
             <button
-              className="no-print"
+              className="logout-button no-print"
+              type="button"
               onClick={() => logout().catch((e) => setLogoutError(e.message))}
             >
+              <LogOut size={18} aria-hidden="true" />
               خروج
             </button>
             <span>{date(new Date(), { weekday: "short" })}</span>
@@ -240,7 +243,6 @@ function AuthenticatedApp() {
   const { user, loading } = useAuth();
   if (loading) return <div className="login-page">در حال بررسی حساب…</div>;
   if (!user) return <Login />;
-  if (user.mustChangePassword) return <Account forced />;
   return (
     <StoreProvider key={user._id}>
       <Shell />

@@ -30,19 +30,29 @@ In **موجودی**, choose **ثبت ورود اجناس**. Enter the supplier, 
 
 The popup opens with an example and the basic fields for one group. A special product name, suggested selling price, notes, supplier details and Excel import are optional expandable sections. When no special name is entered, the product type is used as its name. The popup accepts up to **200 groups / 1000 physical rolls** per delivery. Each roll retains its own remaining length; partial sales affect only the selected roll. Delivery number, reference and supplier appear in the inventory detail popup. The original single-record popup remains available through **افزودن رکورد**.
 
+Each group in **ثبت ورود اجناس** has an optional photo picker. Upload one photo for all rolls in that group; different colors or types can have their own photos. Duplicating a group copies its photo, which you can replace or remove independently before reviewing and saving. Photos also appear in the delivery review and on the resulting inventory records.
+
 ### Excel import
 
 Expand **لیست Excel دارید؟** in the delivery popup and download **دانلود نمونهٔ Excel**. Replace the example rows with the supplier's list, then choose **واردکردن فایل Excel**. Imported rows are added to your draft and remain editable; uploading a file never writes inventory.
 
 Use `.xlsx` files up to **2 MB**, with headers on the first row of the first worksheet. Supported columns are `vinylName`, `type`, `color`, `length`, `width`, `quantity`, `lengths`, `costPrice`, `sellingPrice`, `details`. The equivalent Dari headers are `نام`, `نوع`, `رنگ`, `طول`, `عرض`, `تعداد`, `طول‌ها`, `قیمت خرید`, `نرخ پیشنهادی`, `توضیحات`. Type, color and width headers are required; a missing name defaults to the type, and a missing quantity defaults to 1 for equal-length groups. Use plain values rather than formulas, English digits and decimal points. For a `lengths` list, leave both `length` and `quantity` empty. Fill in supplier, reference and date in the popup, not in the spreadsheet.
 
-## Customer-specific vinyl prices
+## Selling several rolls on one bill
 
-Each customer can have a separate saved price for each **vinyl type and pricing method**. Linear-meter and square-meter rates are independent.
+In **فروشات → فروش جدید**, select the customer once and add the first item. Use **افزودن جنس دیگر** for each additional roll. Every item has its own roll, length, pricing method, customer price and optional saved rate. **تمام رول** fills the available length; **حذف جنس** removes an unwanted item. Up to 100 items can share a bill.
+
+Enter one payment for the entire bill, then choose **تکمیل فروش**. The server calculates each item's amount, totals the bill, applies customer credit once, and deducts each roll's stock in one transaction. If any item is unavailable, nothing is recorded. Repeated requests cannot duplicate the sale, and multiple cuts from the same roll cannot exceed its combined available length.
+
+The invoice/PDF lists all items and one payment summary. Longer bills continue onto additional A4 pages. Customer statements, receipts, reports and exports count the invoice totals once. Existing single-item bills remain readable without rewriting history. The sales API accepts `items: [{ vinylId, soldLength, pricingMethod, unitPrice, rememberPrice? }]` plus invoice-level `customerId`, `paidAmount`, `soldDate` and `notes`; the previous single-item payload is still accepted. For two items of the same type/unit, save only one customer rate if their prices differ.
+
+## Customer-specific prices
+
+Each customer can have a separate saved price for each **carpet/flooring type and pricing method**. Linear-meter and square-meter rates are independent.
 
 - On the customer account, use **نرخ‌های اختصاصی مشتری** to add, edit or remove rates. Enter the same type name used in inventory; surrounding whitespace is trimmed.
 - In **فروش جدید**, selecting the customer and roll loads the customer's saved rate for that type. If no linear-meter rate exists, the roll's suggested price is used. Square-meter prices must be entered explicitly if no rate is saved.
-- The unit price remains editable on every sale. Choose **ذخیرهٔ این نرخ برای این مشتری و این نوع وینیل** to remember the negotiated price after the sale succeeds. Leave it unchecked for a one-time price.
+- The unit price remains editable on every sale. Choose **ذخیرهٔ این نرخ برای این مشتری و این نوع فرش و قالین** to remember the negotiated price after the sale succeeds. Leave it unchecked for a one-time price.
 - Switching customers or pricing methods reloads the appropriate suggestion. Walk-in customers have no saved rates.
 - Saving a rate with a sale happens in the same database transaction. Failed sales do not update rates. Editing/deleting saved suggestions never changes previous invoices or the roll's suggested price.
 
@@ -104,11 +114,11 @@ npm run dev
 
 Open **http://127.0.0.1:5173** (or http://localhost:5173).
 
-`admin:create` runs once per database and reads `backend/.env`. It creates username `admin` and saves a random temporary password in an ignored `.data/initial-admin-*.txt` file. Open the path printed by the command, log in, change the temporary password, then delete that credential file. Existing stores should skip `seed`; creating the first administrator preserves all existing records. The bootstrap refuses to run if any account already exists.
+`admin:create` runs once per database and reads `backend/.env`. It creates username `admin` and saves a random temporary password in an ignored `.data/initial-admin-*.txt` file. Open the path printed by the command, log in directly, then delete that credential file. Existing stores should skip `seed`; creating the first administrator preserves all existing records. The bootstrap refuses to run if any account already exists.
 
 ## Users and permissions
 
-All store pages, APIs, photos, PDF downloads and live updates require login. There is no public registration. In **مدیریت کاربران**, an administrator creates accounts, assigns roles, resets passwords and activates/deactivates accounts. Temporary passwords must be changed at first login. Accounts are deactivated instead of deleted to preserve transaction history.
+All store pages, APIs, photos, PDF downloads and live updates require login. There is no public registration. In **مدیریت کاربران**, an administrator creates accounts, assigns roles, resets passwords and activates/deactivates accounts. Correct passwords grant access immediately, including newly created and reset accounts. Password changes remain available from the account page. Accounts are deactivated instead of deleted to preserve transaction history.
 
 | Capability | Admin — مدیر سیستم | Manager — مدیر | Staff — کارمند |
 | --- | --- | --- | --- |
@@ -120,7 +130,7 @@ All store pages, APIs, photos, PDF downloads and live updates require login. The
 
 Permissions are enforced by the API as well as the interface. The last active administrator cannot be demoted or deactivated. Editing a user's account or changing/resetting their password revokes their sessions and live connections. Every user can change their own password from their account page. Use another administrator to reset a forgotten password.
 
-Passwords use salted scrypt hashes. Sessions expire after 8 hours and use HttpOnly, SameSite cookies; production cookies also require HTTPS. Writes require a session-specific CSRF token. Login attempts are limited per account and IP within each API process. Sessions survive API restarts; the in-memory login limiter resets on restart. Login API clients must send `X-Requested-With: store-app`, retain the returned cookie, and send the response's `csrf` value as `X-CSRF-Token` on subsequent writes.
+Passwords use salted scrypt hashes. Administrators can set session duration in Settings from 5 to 10080 minutes (7 days), with a default of 480 minutes (8 hours). This applies to every role, including administrators, for new logins; existing sessions keep their original expiration. Sessions use a fixed lifetime from login, not an inactivity timer. Sessions use HttpOnly, SameSite cookies; production cookies also require HTTPS. Writes require a session-specific CSRF token. Login attempts are limited per account and IP within each API process. Sessions survive API restarts; the in-memory login limiter resets on restart. Login API clients must send `X-Requested-With: store-app`, retain the returned cookie, and send the response's `csrf` value as `X-CSRF-Token` on subsequent writes.
 
 New records store the responsible user; financial changes and their audit events commit together. The admin audit page shows actions and actors. Older records remain intact and display **رکورد قبلی** where no creator was recorded. Invoice/receipt printouts include the recorded creator. Retry keys are scoped to the logged-in user.
 
@@ -191,7 +201,7 @@ Wait for the node to become primary, then start the backend. An Atlas replica se
 1. Configure the store name, address, phone, currency, default width and stock threshold in **Settings**.
 2. Add a roll. Roll numbers are assigned automatically and never renumbered or reused.
 3. Add a customer, or choose walk-in for fully paid sales.
-4. In **فروشات**, click **فروش جدید** to open the sale popup. Select a roll, enter length, choose linear-meter or square-meter pricing, and enter payment. Cancel returns to the list; completing the sale opens its invoice. Sale shortcuts from inventory, customer accounts and the dashboard also open the popup with any selected roll/customer filled in.
+4. In **فروشات**, click **فروش جدید** to open the sale popup. Select a roll, enter length and choose linear-meter or square-meter pricing. Use **افزودن جنس دیگر** for additional rolls with their own lengths and prices, then enter one payment for the whole bill. Cancel returns to the list; completing the sale opens its invoice. Sale shortcuts from inventory, customer accounts and the dashboard also open the popup with any selected roll/customer filled in.
 5. Review the invoice. Stock and debt have already been updated atomically.
 6. Record subsequent payments from the customer account. Receipts settle the oldest unpaid invoices first.
 7. Use **Reports** for date-filtered sales, inventory cost value and customer debt.
@@ -233,6 +243,8 @@ npm run build
 ```
 
 Backend tests start a disposable MongoDB replica set. They cover partial/full sales, oversell rejection, transaction rollback after a simulated storage failure, concurrent sales and payments, idempotent retries, decimal prices, snapshots, debt/receipt reconciliation, CRUD, validation, search, filters, pagination, aggregates, exports and archive safety. Additional coverage verifies customer-specific rates, Dari output, image validation/resizing and persistence, receipt snapshots, and actual PDF downloads.
+
+Multi-item sale tests cover mixed pricing methods, repeated-roll stock limits, concurrent baskets, full rollback, customer credit, totals counted once, legacy invoices and multi-page A4 PDFs. Delivery tests verify that each group's photo is applied to all of its generated rolls. Browser tests also check copying, replacing and removing group photos independently, whole-roll selection and one invoice for several items.
 
 Browser tests launch their own disposable database, API on **5001**, and frontend on **5174**. They exercise inventory/customer creation and editing, photo uploads, customer-specific prices, sales, payments, invoice/receipt PDF downloads, statement printing, reports, settings and mobile layouts. They fail on browser console errors and horizontal page overflow. Test databases and uploaded test images are separate from the store. Artifacts go in `test-results/`.
 
@@ -284,9 +296,9 @@ List payloads contain `items`, `total`, `page`, `limit`, and `pages`. Default pa
 | Export     | `GET /api/exports/{vinyl,sales,customers,payments}?format=csv` or `xlsx`                                       |
 | Settings   | `GET/PUT /api/settings`                                                                                        |
 
-`POST /api/sales`, `POST /api/payments` and `POST /api/deliveries` require an `Idempotency-Key` header (8–100 characters). Retain the same key when retrying an uncertain request. Sale inputs: `vinylId`, optional `customerId`, `soldLength`, `pricingMethod` (`linear`/`area`), `unitPrice`, `paidAmount`, optional `soldDate` and `notes`. Payment inputs: `customerId`, positive `amount`, `paymentMethod` (`cash`/`bank`/`other`), optional `date`, `details`, and `reference`.
+`POST /api/sales`, `POST /api/payments` and `POST /api/deliveries` require an `Idempotency-Key` header (8–100 characters). Retain the same key when retrying an uncertain request. Sale inputs: `items` (1–100 entries containing `vinylId`, `soldLength`, `pricingMethod` (`linear`/`area`), `unitPrice`, optional `rememberPrice`), invoice-level `paidAmount`, and optional `customerId`, `soldDate`, `notes`. The legacy single-item payload accepts the item fields at the top level instead of `items`; do not mix both formats. Payment inputs: `customerId`, positive `amount`, `paymentMethod` (`cash`/`bank`/`other`), optional `date`, `details`, and `reference`.
 
-Delivery inputs: `entryDate`, optional `supplier` and `reference`, and `rows`. Each row accepts inventory name/type/color/width, optional per-meter prices and notes, and either `length` plus integer `quantity` or a `lengths` array. The response includes the delivery number, physical roll count and first/last roll numbers. Excel import returns editable draft rows only; validation at save time applies to the entire delivery.
+Delivery inputs: `entryDate`, optional `supplier` and `reference`, and `rows`. Each row accepts inventory name/type/color/width, optional `img` photo URL, per-meter prices and notes, and either `length` plus integer `quantity` or a `lengths` array. Upload photos through `/api/images` first and include the returned URL as `img`; all rolls generated from that row share the photo. The response includes the delivery number, physical roll count and first/last roll numbers. Excel import returns editable draft rows only; add photos in the popup after import. Validation at save time applies to the entire delivery.
 
 Customer details include `customer`, paginated `purchases`, paginated `receipts`, and lifetime `summary`; use `purchasePage` and `paymentPage` independently. `GET /api/sales?customerId=...` and `/api/payments?customerId=...` also provide histories.
 

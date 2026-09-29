@@ -228,7 +228,7 @@ test("manual prices, area rates, validation and failed sales preserve pricing in
 });
 test("Dari validation messages and exported headings are localized", async () => {
   const invalid = await request(app).post("/api/vinyl").send({}).expect(400);
-  assert.match(invalid.body.error.message, /نام وینیل/);
+  assert.match(invalid.body.error.message, /نام فرش و قالین/);
   assert.doesNotMatch(invalid.body.error.message, /expected|Invalid input/);
   const csv = await request(app)
     .get("/api/exports/sales?format=csv")

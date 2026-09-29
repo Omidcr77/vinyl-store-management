@@ -12,6 +12,8 @@ const require = createRequire(import.meta.url);
 let browserPromise;
 let active = 0;
 export async function closePdfBrowser() {
+  // A response may have finished sending while its page is still closing.
+  while (active > 0) await new Promise(resolve => setTimeout(resolve, 25));
   if (browserPromise) await (await browserPromise).close();
   browserPromise = undefined;
 }

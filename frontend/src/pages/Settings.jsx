@@ -19,6 +19,7 @@ export default function Settings() {
         body: formValues(e.currentTarget, [
           "lowStockThreshold",
           "defaultVinylWidth",
+          "sessionTimeoutMinutes",
         ]),
       });
       refresh();
@@ -45,6 +46,10 @@ export default function Settings() {
             <form className="panel form-panel" onSubmit={submit}>
               <h2>معلومات دکان</h2>
               <div className="form-grid">
+                <Field label="مدت نشست کاربران (دقیقه)" name="sessionTimeoutMinutes"
+                  type="number" min="5" max="10080" step="1" required
+                  defaultValue={data.sessionTimeoutMinutes ?? 480}
+                  hint="برای همه، شامل مدیر سیستم. از ورود بعدی اعمال می‌شود؛ پس از این مدت ورود دوباره لازم است. حداقل 5 دقیقه، حداکثر 7 روز." />
                 <Field
                   label="تقویم"
                   hint="نمایش و ورود تاریخ‌ها؛ تاریخ سوابق محفوظ می‌ماند."
@@ -95,7 +100,7 @@ export default function Settings() {
                   defaultValue={data.lowStockThreshold}
                 />
                 <Field
-                  label="عرض پیش‌فرض وینیل (متر)"
+                  label="عرض پیش‌فرض فرش و قالین (متر)"
                   name="defaultVinylWidth"
                   type="number"
                   min="0.001"

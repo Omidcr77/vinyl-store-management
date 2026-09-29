@@ -32,12 +32,21 @@ export function filterFor(kind, q) {
     kind === "vinyl"
       ? ["vinylName", "type", "color"]
       : kind === "sales"
-        ? ["billNumber", "customerName", "vinylName"]
+        ? [
+            "billNumber",
+            "customerName",
+            "vinylName",
+            "items.vinylName",
+            "items.type",
+            "items.color",
+          ]
         : ["name", "phone"];
   if (q.search) {
     filter.$or = fields.map((field) => ({ [field]: regex(q.search) }));
     if (kind !== "customers" && /^\d+$/.test(q.search))
       filter.$or.push({ rollNumber: Number(q.search) });
+    if (kind === "sales" && /^\d+$/.test(q.search))
+      filter.$or.push({ "items.rollNumber": Number(q.search) });
     if (kind === "vinyl" && /^\d{4}-\d{2}-\d{2}$/.test(q.search))
       filter.$or.push({ entryDate: dateRange(q.search, q.search) });
   }
@@ -51,7 +60,14 @@ export function filterFor(kind, q) {
   if (q.rollNumber && kind === "sales") {
     if (!/^\d+$/.test(q.rollNumber))
       throw new AppError("شمارهٔ رول معتبر نیست.");
-    filter.rollNumber = Number(q.rollNumber);
+    filter.$and = [
+      {
+        $or: [
+          { rollNumber: Number(q.rollNumber) },
+          { "items.rollNumber": Number(q.rollNumber) },
+        ],
+      },
+    ];
   }
   if (q.customerId) filter.customerId = id.parse(q.customerId);
   if (kind === "customers") {

@@ -95,7 +95,9 @@ try {
   vite.stderr.on("data", (d) => {
     logs += d;
   });
-  vite.on('exit',(code,signal)=>{if(code)console.error('Vite exited:',code,signal,logs.slice(-5000));});
+  vite.on("exit", (code, signal) => {
+    if (code) console.error("Vite exited:", code, signal, logs.slice(-5000));
+  });
   for (let i = 0; i < 120; i++) {
     try {
       if ((await fetch(base)).ok) break;
@@ -108,10 +110,16 @@ try {
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
-  page.on('pageerror', e=>console.error('Early page error:',e.message));
-  page.on('console',m=>{if(m.type()==='error')console.error('Browser console:',m.text());});
-  page.on('requestfailed',r=>console.error('Failed request:',r.url(),r.failure()?.errorText));
+  page.on("pageerror", (e) => console.error("Early page error:", e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") console.error("Browser console:", m.text());
+  });
+  page.on("requestfailed", (r) =>
+    console.error("Failed request:", r.url(), r.failure()?.errorText),
+  );
   await page.goto(base);
+  await page.locator('input[name="username"]').waitFor();
+  await page.screenshot({ path: "test-results/login-desktop.png" });
   await page.getByLabel("نام کاربری", { exact: true }).fill("uiadmin");
   await page.getByLabel("رمز عبور", { exact: true }).fill("UI-password-123");
   await page.getByRole("button", { name: "ورود", exact: true }).click();
@@ -122,7 +130,7 @@ try {
   await page.getByLabel("نام کامل", { exact: true }).fill("Browser Staff");
   await page.getByLabel("نام کاربری", { exact: true }).fill("browserstaff");
   await page
-    .getByLabel("رمز موقت", { exact: true })
+    .getByLabel("رمز عبور", { exact: true })
     .fill("Temporary-staff-123");
   await page.getByRole("button", { name: "ذخیرهٔ کاربر", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
@@ -137,25 +145,6 @@ try {
     .getByLabel("رمز عبور", { exact: true })
     .fill("Temporary-staff-123");
   await staffPage.getByRole("button", { name: "ورود", exact: true }).click();
-  await staffPage.getByRole("heading", { name: "تغییر رمز عبور" }).waitFor();
-  assert.equal(await staffPage.locator(".sidebar").count(), 0);
-  await staffPage
-    .getByLabel("رمز فعلی", { exact: true })
-    .fill("Temporary-staff-123");
-  await staffPage
-    .getByLabel("رمز جدید", { exact: true })
-    .fill("Permanent-staff-123");
-  await staffPage
-    .getByLabel("تکرار رمز جدید", { exact: true })
-    .fill("Permanent-staff-123");
-  await staffPage.getByRole("button", { name: "ذخیرهٔ رمز جدید" }).click();
-  await staffPage
-    .getByLabel("نام کاربری", { exact: true })
-    .fill("browserstaff");
-  await staffPage
-    .getByLabel("رمز عبور", { exact: true })
-    .fill("Permanent-staff-123");
-  await staffPage.getByRole("button", { name: "ورود", exact: true }).click();
   await staffPage
     .getByRole("heading", { name: "داشبورد", exact: true })
     .waitFor();
@@ -166,7 +155,7 @@ try {
     );
   await staffPage.goto(`${base}/inventory`);
   await staffPage
-    .getByRole("heading", { name: "موجودی وینیل", exact: true })
+    .getByRole("heading", { name: "موجودی فرش و قالین", exact: true })
     .waitFor();
   assert.equal(
     await staffPage
@@ -184,8 +173,21 @@ try {
   await page.goto(`${base}/audit`);
   await page.getByText("UI Admin", { exact: true }).first().waitFor();
   console.log(
-    "PASS: admin user creation, forced password change, staff permissions, audit and live deactivation",
+    "PASS: admin user creation, direct login, staff permissions, audit and live deactivation",
   );
+  await page.goto(`${base}/settings`);
+  await page.locator('[name="sessionTimeoutMinutes"]').fill("60");
+  await page
+    .getByRole("button", { name: "ذخیرهٔ تنظیمات", exact: true })
+    .click();
+  await page.getByText("تنظیمات دکان ذخیره شد.", { exact: false }).waitFor();
+  assert.equal((await api("/settings")).sessionTimeoutMinutes, 60);
+  await page.reload();
+  assert.equal(
+    await page.locator('[name="sessionTimeoutMinutes"]').inputValue(),
+    "60",
+  );
+  console.log("PASS: admin session duration setting saves and persists");
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
@@ -225,7 +227,7 @@ try {
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   assert.ok(page.url().endsWith("/inventory"));
   await page.getByRole("button", { name: "افزودن رکورد", exact: true }).click();
-  await page.getByLabel("نام وینیل").fill("Browser Oak");
+  await page.getByLabel("نام فرش و قالین").fill("Browser Oak");
   await page.getByLabel("نوع", { exact: false }).fill("Wood");
   await page.getByLabel("رنگ").fill("Brown");
   await page.getByLabel("طول (متر)").fill("30");
@@ -419,7 +421,7 @@ try {
   await page.getByRole("link", { name: /^ویرایش رول/ }).click();
   await page.waitForURL(/\/inventory\/[a-f0-9]{24}\/edit$/);
   await page
-    .getByRole("textbox", { name: "نام وینیل", exact: true })
+    .getByRole("textbox", { name: "نام فرش و قالین", exact: true })
     .fill("Edited Marble");
   await page.getByRole("button", { name: "ذخیرهٔ تغییرات" }).click();
   await page.waitForURL("**/inventory");
@@ -469,7 +471,7 @@ try {
   await page.getByRole("button", { name: "افزودن نرخ", exact: true }).click();
   await page
     .getByRole("dialog")
-    .getByLabel("نوع وینیل", { exact: true })
+    .getByLabel("نوع فرش و قالین", { exact: true })
     .fill("Wood");
   await page
     .getByRole("dialog")
@@ -524,7 +526,7 @@ try {
   await page.getByLabel("مبلغ پرداخت‌شده", { exact: true }).fill("199.99");
   await page
     .getByRole("checkbox", {
-      name: "ذخیرهٔ این نرخ برای این مشتری و این نوع وینیل",
+      name: "ذخیرهٔ این نرخ برای این مشتری و این نوع فرش و قالین",
     })
     .check();
   await page.screenshot({
@@ -612,6 +614,12 @@ try {
     .getByLabel("طول هر رول (متر)", { exact: true })
     .fill("30");
   await deliveryRows.nth(0).getByLabel("تعداد رول", { exact: true }).fill("20");
+  await deliveryRows.nth(0).getByLabel("عکس (اختیاری)").setInputFiles(photo);
+  await deliveryRows.nth(0).locator(".image-picker img").waitFor();
+  const brownPhoto = await deliveryRows
+    .nth(0)
+    .locator(".image-picker img")
+    .getAttribute("src");
   await deliveryRows
     .nth(0)
     .getByLabel("قیمت خرید فی متر (USD)", { exact: true })
@@ -624,6 +632,29 @@ try {
     })
     .click();
   await deliveryRows.nth(1).getByLabel("رنگ", { exact: true }).fill("Blue");
+  assert.equal(
+    await deliveryRows.nth(1).locator(".image-picker img").getAttribute("src"),
+    brownPhoto,
+  );
+  await deliveryRows
+    .nth(1)
+    .getByRole("button", { name: "حذف عکس", exact: true })
+    .click();
+  assert.equal(
+    await deliveryRows.nth(1).locator(".image-picker img").count(),
+    0,
+  );
+  assert.equal(
+    await deliveryRows.nth(0).locator("img").getAttribute("src"),
+    brownPhoto,
+  );
+  await deliveryRows.nth(1).getByLabel("عکس (اختیاری)").setInputFiles(photo);
+  await deliveryRows.nth(1).locator(".image-picker img").waitFor();
+  const bluePhoto = await deliveryRows
+    .nth(1)
+    .locator(".image-picker img")
+    .getAttribute("src");
+  assert.notEqual(bluePhoto, brownPhoto);
   await deliveryRows.nth(1).getByLabel("تعداد رول", { exact: true }).fill("10");
   await deliveryRows
     .nth(1)
@@ -702,6 +733,19 @@ try {
   await deliveryDialog.waitFor({ state: "hidden" });
   const truckRolls = await api("/vinyl?search=Truck&limit=100");
   assert.equal(truckRolls.total, 35);
+  assert.ok(
+    truckRolls.items
+      .filter((r) => r.color === "Brown")
+      .every((r) => r.img === brownPhoto),
+  );
+  assert.ok(
+    truckRolls.items
+      .filter((r) => r.color === "Blue")
+      .every((r) => r.img === bluePhoto),
+  );
+  assert.ok(
+    truckRolls.items.filter((r) => r.color === "Red").every((r) => !r.img),
+  );
   assert.equal(new Set(truckRolls.items.map((r) => r.rollNumber)).size, 35);
   assert.ok(
     truckRolls.items.every(
@@ -798,6 +842,93 @@ try {
   console.log(
     "PASS: calendar settings persist, Persian date entry rejects invalid days, stores ISO and prints correctly",
   );
+  const multiCustomer = await api("/customers", {
+    name: "Multi Bill Customer",
+    phone: "0705551234",
+  });
+  const multiRolls = [];
+  for (const [name, length, width, color] of [
+    ["Basket Red", 30, 4, "Red"],
+    ["Basket Blue", 12, 3, "Blue"],
+    ["Basket Green", 6, 2, "Green"],
+  ])
+    multiRolls.push(
+      await api("/vinyl", {
+        vinylName: name,
+        type: name,
+        color,
+        length,
+        width,
+        sellingPrice: 20,
+      }),
+    );
+  await page.goto(
+    `${base}/sales/new?customerId=${multiCustomer._id}&vinylId=${multiRolls[0]._id}`,
+  );
+  await page.getByRole("dialog").waitFor();
+  const item1 = page.getByRole("region", { name: "جنس 1", exact: true });
+  await item1.getByLabel("طول فروخته‌شده (متر)").fill("5");
+  await item1.getByLabel("نرخ مشتری فی متر طولی").fill("20");
+  for (const [index, name] of [
+    [2, "Basket Blue"],
+    [3, "Basket Green"],
+  ]) {
+    await page
+      .getByRole("button", { name: "افزودن جنس دیگر", exact: true })
+      .click();
+    const item = page.getByRole("region", {
+      name: `جنس ${index}`,
+      exact: true,
+    });
+    await item.getByRole("textbox", { name: "جستجو", exact: true }).fill(name);
+    await item.getByRole("button", { name: new RegExp(name) }).click();
+    if (index === 2) {
+      await item.getByLabel("طول فروخته‌شده (متر)").fill("2");
+      await item.getByLabel("روش قیمت‌گذاری").selectOption("area");
+      await item.getByLabel("نرخ مشتری فی متر مربع").fill("10");
+    } else {
+      await item.getByRole("button", { name: "تمام رول", exact: true }).click();
+      await item.getByLabel("نرخ مشتری فی متر طولی").fill("15");
+      assert.equal(
+        await item.getByLabel("طول فروخته‌شده (متر)").inputValue(),
+        "6",
+      );
+    }
+  }
+  await page
+    .getByRole("button", { name: "افزودن جنس دیگر", exact: true })
+    .click();
+  await page
+    .getByRole("region", { name: "جنس 4", exact: true })
+    .getByRole("button", { name: "حذف جنس", exact: true })
+    .click();
+  assert.equal(await page.locator(".sale-line").count(), 3);
+  await page.getByLabel("مبلغ پرداخت‌شده", { exact: true }).fill("70");
+  await page.screenshot({
+    path: "test-results/multi-sale.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "تکمیل فروش", exact: true }).click();
+  await page.waitForURL(/\/sales\/[a-f0-9]{24}$/);
+  const multiSale = await api(`/sales/${page.url().split("/").at(-1)}`);
+  assert.equal(multiSale.items.length, 3);
+  assert.equal(multiSale.totalAmount, 250);
+  assert.equal(multiSale.remainingBalance, 180);
+  assert.equal((await api(`/sales?customerId=${multiCustomer._id}`)).total, 1);
+  for (const [i, length] of [
+    [0, 25],
+    [1, 10],
+    [2, 0],
+  ])
+    assert.equal((await api(`/vinyl/${multiRolls[i]._id}`)).length, length);
+  await page.getByRole("button", { name: "چاپ بل", exact: true }).click();
+  await page.locator(".bill-items").waitFor();
+  assert.equal(await page.locator(".bill-items tbody tr").count(), 3);
+  await downloadPdf("multi-item-invoice");
+  await page.getByRole("button", { name: "بستن پنجره", exact: true }).click();
+  console.log(
+    "PASS: mixed-item basket, whole roll, remove item, one payment, stock deductions and one printable invoice",
+  );
   for (const path of [
     "/",
     "/inventory",
@@ -837,13 +968,23 @@ try {
   console.log("All browser workflows passed; no console errors.");
 } catch (error) {
   console.error(error);
-  console.error('Browser errors:', errors);
-  console.error('Vite output:',logs.slice(-5000));
-  for (const context of browser?.contexts() || []) for (const tab of context.pages()) {
-    console.error('Failed page:',tab.url());
-    console.error((await tab.locator('body').innerText().catch(()=>'' )).slice(0,1500));
-    await tab.screenshot({path:'test-results/auth-failure.png',fullPage:true}).catch(()=>{});
-  }
+  console.error("Browser errors:", errors);
+  console.error("Vite output:", logs.slice(-5000));
+  for (const context of browser?.contexts() || [])
+    for (const tab of context.pages()) {
+      console.error("Failed page:", tab.url());
+      console.error(
+        (
+          await tab
+            .locator("body")
+            .innerText()
+            .catch(() => "")
+        ).slice(0, 1500),
+      );
+      await tab
+        .screenshot({ path: "test-results/auth-failure.png", fullPage: true })
+        .catch(() => {});
+    }
   process.exitCode = 1;
 } finally {
   await closePdfBrowser();

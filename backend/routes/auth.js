@@ -8,7 +8,6 @@ import {
   requireAuth,
   csrf,
   allowRoles,
-  passwordReady,
 } from "../middleware/auth.js";
 import {
   publicUser,
@@ -135,7 +134,7 @@ router.post("/password", async (req, res) => {
 export default router;
 
 export const usersRouter = Router();
-usersRouter.use(allowRoles("admin"), passwordReady);
+usersRouter.use(allowRoles("admin"));
 usersRouter.get("/", async (req, res) => {
   const result = await list(User, {}, req.query, ["username", "createdAt"]);
   send(res, { ...result, items: result.items.map(publicUser) });
@@ -217,7 +216,7 @@ usersRouter.put("/:id", async (req, res) => {
     u.authVersion++;
     if (passwordHash) {
       u.passwordHash = passwordHash;
-      u.mustChangePassword = true;
+      u.mustChangePassword = false;
     }
     await u.save({ session });
     await audit(
@@ -232,7 +231,7 @@ usersRouter.put("/:id", async (req, res) => {
   send(res, publicUser(user));
 });
 export const auditRouter = Router();
-auditRouter.use(allowRoles("admin"), passwordReady);
+auditRouter.use(allowRoles("admin"));
 auditRouter.get("/", async (req, res) =>
   send(res, await list(AuditEvent, {}, req.query, ["date"])),
 );

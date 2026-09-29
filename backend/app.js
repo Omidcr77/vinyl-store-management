@@ -7,7 +7,6 @@ import authRoutes, { usersRouter, auditRouter } from "./routes/auth.js";
 import {
   requireAuth,
   csrf,
-  passwordReady,
   staffPrivacy,
 } from "./middleware/auth.js";
 export function createApp() {
@@ -31,7 +30,7 @@ export function createApp() {
     res.json({ success: true, data: { status: "ok" } }),
   );
   app.use("/api/auth", authRoutes);
-  app.use("/api", requireAuth, csrf, passwordReady, staffPrivacy);
+  app.use("/api", requireAuth, csrf, staffPrivacy);
   app.use("/api/users", usersRouter);
   app.use("/api/audit", auditRouter);
   app.use(

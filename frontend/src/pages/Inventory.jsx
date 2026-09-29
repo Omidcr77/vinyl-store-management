@@ -58,7 +58,7 @@ export default function Inventory() {
     <>
       <PageHeading
         eyebrow="مدیریت موجودی"
-        title="موجودی وینیل"
+        title="موجودی فرش و قالین"
         description="موجودی هر رول و هر متر را دقیق مدیریت کنید."
       >
         <ExportButtons kind="vinyl" params={params} />
@@ -123,7 +123,7 @@ export default function Inventory() {
                 onChange={(e) => change({ sort: e.target.value })}
               >
                 <option value="rollNumber">شمارهٔ رول</option>
-                <option value="vinylName">نام وینیل</option>
+                <option value="vinylName">نام فرش و قالین</option>
                 <option value="length">طول باقی‌مانده</option>
                 <option value="entryDate">تاریخ ورود</option>
                 <option value="sellingPrice">نرخ پیشنهادی</option>
@@ -169,7 +169,7 @@ export default function Inventory() {
               },
               {
                 key: "vinylName",
-                label: "نام وینیل",
+                label: "نام فرش و قالین",
                 render: (r) => (
                   <div className="product-cell">
                     <Photo src={r.img} name={r.vinylName} />
@@ -233,7 +233,7 @@ export default function Inventory() {
                     )}
                     {r.length > 0 && (
                       <Link
-                        title="فروش وینیل"
+                        title="فروش فرش و قالین"
                         aria-label={`فروش رول ${r.rollNumber}`}
                         to={`/sales/new?vinylId=${r._id}`}
                       >
