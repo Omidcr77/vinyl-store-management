@@ -1065,18 +1065,79 @@ try {
     ["customers", "Bulk UI", ["Bulk UI A", "Bulk UI B"]],
   ]) {
     await page.goto(`${base}/${route}`);
-    await page.getByRole("textbox", { name: /جستجو/ }).fill(search);
-    for (const label of labels)
+    const kind = route === "inventory" ? "vinyl" : route;
+    async function filterRows(value) {
+      const loaded = page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return (
+          url.pathname === `/api/${kind}` &&
+          url.searchParams.get("search") === value &&
+          response.status() === 200
+        );
+      });
       await page
-        .getByRole("checkbox", { name: `انتخاب ${label}`, exact: true })
-        .waitFor();
-    await page.waitForFunction(
-      () => document.querySelectorAll('input[type="checkbox"]').length === 3,
-    );
+        .getByRole("textbox", { name: "جستجو", exact: true })
+        .fill(value);
+      await loaded;
+    }
+    await filterRows(search);
+    const deleteSelected = page.getByRole("button", {
+      name: "حذف انتخاب‌شده‌ها",
+      exact: true,
+    });
+    const choose = page.getByRole("button", {
+      name: "انتخاب چند مورد",
+      exact: true,
+    });
     const selectAll = page.getByRole("checkbox", {
       name: "انتخاب همهٔ این صفحه",
       exact: true,
     });
+    const rowChecks = labels.map((label) =>
+      page.getByRole("checkbox", { name: `انتخاب ${label}`, exact: true }),
+    );
+    assert.equal(await deleteSelected.count(), 0);
+    assert.equal(await rowChecks[0].count(), 0);
+    await choose.click();
+    for (const checkbox of rowChecks) await checkbox.waitFor();
+    assert.equal(await deleteSelected.count(), 0);
+    await rowChecks[0].check();
+    await deleteSelected.waitFor();
+    assert.equal(await selectAll.evaluate((node) => node.indeterminate), true);
+    await page.getByRole("button", { name: "شبکه‌ای", exact: true }).click();
+    assert.equal(await rowChecks[0].isChecked(), true);
+    await rowChecks[1].check();
+    assert.equal(await selectAll.isChecked(), true);
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+      true,
+    );
+    await page.screenshot({
+      path: `test-results/bulk-selection-${route}-mobile.png`,
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page
+      .getByRole("button", { name: "جدول (پیش‌فرض)", exact: true })
+      .click();
+    for (const checkbox of rowChecks) await checkbox.uncheck();
+    assert.equal(await deleteSelected.count(), 0);
+    await rowChecks[0].check();
+    await page.getByRole("button", { name: "لغو انتخاب", exact: true }).click();
+    assert.equal(await rowChecks[0].count(), 0);
+    assert.equal(await deleteSelected.count(), 0);
+    // Select-all also enters selection mode directly.
+    await selectAll.check();
+    for (const checkbox of rowChecks)
+      assert.equal(await checkbox.isChecked(), true);
+    await filterRows("No matches for selection check");
+    await choose.waitFor();
+    assert.equal(await deleteSelected.count(), 0);
+    assert.equal(await selectAll.isChecked(), false);
+    await filterRows(search);
     await selectAll.check();
     await page
       .getByRole("button", { name: "حذف انتخاب‌شده‌ها", exact: true })
@@ -1104,7 +1165,7 @@ try {
     0,
   );
   console.log(
-    "PASS: bulk selection, cancel and delete for sales, inventory and customers",
+    "PASS: selection mode, conditional delete, individual/select-all, cancel, filter reset, desktop/mobile views and bulk deletion on all three lists",
   );
   assert.deepEqual(
     errors,
@@ -1112,6 +1173,7 @@ try {
     "Browser console or runtime errors after bulk deletion",
   );
   await page.goto(`${base}/settings`);
+  await page.locator(".sidebar").waitFor();
   // A background session refresh during temporary maintenance must retain login.
   await page.route("**/api/auth/session", (route) =>
     route.fulfill({

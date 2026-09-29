@@ -9,9 +9,11 @@ export function useBulkDelete(kind, rows = [], scope, onDeleted) {
   const { canManage } = useAuth();
   const { refresh, notice } = useStore();
   const [selected, setSelected] = useState([]);
+  const [selecting, setSelecting] = useState(false);
   const [pending, setPending] = useState(null);
   useEffect(() => {
     setSelected([]);
+    setSelecting(false);
     setPending(null);
   }, [scope]);
   const visible = selected.filter((id) => rows.some((row) => row._id === id));
@@ -32,9 +34,10 @@ export function useBulkDelete(kind, rows = [], scope, onDeleted) {
     />
   );
   return {
-    selectionColumns: canManage
-      ? [{ key: "selection", label: "انتخاب", render: select }]
-      : [],
+    selectionColumns:
+      canManage && selecting
+        ? [{ key: "selection", label: "انتخاب", render: select }]
+        : [],
     deleteColumns: canManage
       ? [
           {
@@ -53,6 +56,17 @@ export function useBulkDelete(kind, rows = [], scope, onDeleted) {
       : [],
     toolbar: canManage && (
       <div className="bulk-actions">
+        <button
+          type="button"
+          aria-pressed={selecting}
+          disabled={!rows.length && !selecting}
+          onClick={() => {
+            setSelecting((value) => !value);
+            setSelected([]);
+          }}
+        >
+          {selecting ? "لغو انتخاب" : "انتخاب چند مورد"}
+        </button>
         <label>
           <input
             type="checkbox"
@@ -62,22 +76,24 @@ export function useBulkDelete(kind, rows = [], scope, onDeleted) {
             ref={(node) => {
               if (node) node.indeterminate = visible.length > 0 && !all;
             }}
-            onChange={(e) =>
-              setSelected(e.target.checked ? rows.map((row) => row._id) : [])
-            }
+            onChange={(e) => {
+              setSelecting(true);
+              setSelected(e.target.checked ? rows.map((row) => row._id) : []);
+            }}
           />{" "}
           انتخاب همهٔ این صفحه
         </label>
-        <span role="status">{visible.length} مورد انتخاب شده</span>
-        <button
-          className="danger"
-          disabled={!visible.length}
-          onClick={() => setPending(visible)}
-        >
-          <DeleteIcon /> حذف انتخاب‌شده‌ها
-        </button>
         {visible.length > 0 && (
-          <button onClick={() => setSelected([])}>لغو انتخاب</button>
+          <>
+            <span role="status">{visible.length} مورد انتخاب شده</span>
+            <button
+              type="button"
+              className="danger"
+              onClick={() => setPending(visible)}
+            >
+              <DeleteIcon /> حذف انتخاب‌شده‌ها
+            </button>
+          </>
         )}
       </div>
     ),
@@ -99,6 +115,7 @@ export function useBulkDelete(kind, rows = [], scope, onDeleted) {
             body: { ids: pending },
           });
           setSelected([]);
+          setSelecting(false);
           onDeleted?.();
           refresh();
           notice(`${pending.length} مورد حذف شد.`);
