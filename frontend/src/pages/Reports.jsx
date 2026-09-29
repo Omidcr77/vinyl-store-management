@@ -137,6 +137,18 @@ export default function Reports() {
               {(kind === "sales"
                 ? [
                     ["مجموع فروشات", money(summary.totalSales)],
+                    [
+                      "هزینهٔ خرید فروشات با قیمت معلوم",
+                      money(summary.costAmount),
+                    ],
+                    [
+                      "سود ناخالص فروشات با قیمت معلوم",
+                      money(summary.grossProfit),
+                    ],
+                    [
+                      "بل‌های بدون قیمت خرید کامل",
+                      number(summary.uncostedSales),
+                    ],
                     ["مجموع پرداخت‌ها", money(summary.totalPaid)],
                     ["باقی‌داری", money(summary.outstanding)],
                     ["طول فروخته‌شده", `${number(summary.metersSold)} متر`],
@@ -169,14 +181,14 @@ export default function Reports() {
           )}
           <p className="small muted">
             {kind === "sales"
-              ? "پرداخت و باقی‌داری، وضعیت فعلی فروشات دورهٔ انتخاب‌شده را با رسیدهای بعدی نشان می‌دهد."
+              ? "سود ناخالص = مبلغ فروش منهای هزینهٔ خرید و ورود. بل‌های بدون قیمت خرید کامل از سود کنار گذاشته می‌شوند. سود جدا از وصول پول و هزینه‌های روزمرهٔ دکان است."
               : kind === "inventory"
-                ? "ارزش موجودی از حاصل‌ضرب طول باقی‌مانده در قیمت خرید هر متر طولی محاسبه می‌شود. رول‌های بدون قیمت خرید، ارزش صفر دارند."
+                ? "ارزش موجودی از حاصل‌ضرب طول باقی‌مانده در قیمت تمام‌شدهٔ هر متر طولی (خرید و هزینهٔ ورود) محاسبه می‌شود. رول‌های بدون قیمت خرید، ارزش صفر دارند."
                 : "مشتریان دارای باقی‌داری. مجموع پرداخت‌ها شامل پرداخت هنگام فروش و رسیدهای بعدی است."}
           </p>
           <section className="panel">
             {kind === "sales" ? (
-              <SaleTable rows={data.items} />
+              <SaleTable rows={data.items} showProfit />
             ) : kind === "inventory" ? (
               <Table
                 rows={data.items}
@@ -201,7 +213,10 @@ export default function Reports() {
                   {
                     key: "value",
                     label: "ارزش خرید",
-                    render: (r) => money(r.length * (r.costPrice || 0)),
+                    render: (r) =>
+                      money(
+                        r.length * (r.landedCostPerMeter ?? r.costPrice ?? 0),
+                      ),
                   },
                 ]}
               />

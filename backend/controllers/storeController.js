@@ -1,3 +1,5 @@
+import Supplier from "../models/Supplier.js";
+import SupplierEntry from "../models/SupplierEntry.js";
 import DeletedRecord from "../models/DeletedRecord.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
@@ -57,6 +59,9 @@ export const vinylSave = async (req, res) => {
   const data = await saveRoll(
     schema.parse(req.body),
     req.params.id && id.parse(req.params.id),
+    !req.params.id && (req.body.supplierId || req.get("Idempotency-Key"))
+      ? keyInput.parse(req.get("Idempotency-Key"))
+      : undefined,
   );
   changed(req);
   send(res, data, req.params.id ? 200 : 201);
@@ -176,11 +181,21 @@ export const settingsSave = async (req, res) => {
     const settings = await Settings.findById("store").session(session);
     if (
       input.currency !== settings.currency &&
-      ((await Sale.exists({}).session(session)) ||
+      ((await SupplierEntry.exists({}).session(session)) ||
+        (await VinylRoll.exists({ costPrice: { $exists: true } }).session(
+          session,
+        )) ||
+        (await Sale.exists({}).session(session)) ||
         (await Payment.exists({}).session(session)) ||
         (await DeletedRecord.exists({ kind: "Sale" }).session(session)))
     )
       throw new AppError("واحد پول پس از نخستین فروش یا رسید قابل تغییر نیست.");
+    if (input.currency !== settings.currency)
+      await Supplier.updateMany(
+        {},
+        { $set: { currency: input.currency } },
+        { session },
+      );
     Object.assign(settings, input);
     settings.revision += 1;
     await settings.save({ session });

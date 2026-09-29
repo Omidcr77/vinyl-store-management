@@ -1,3 +1,4 @@
+import SupplierPicker from "./SupplierPicker";
 import { randomUUID } from "../utils/uuid";
 import { useRef, useState } from "react";
 import DeleteIcon from "./DeleteIcon";
@@ -18,6 +19,7 @@ const blank = (width) => ({
   lengths: "",
   mode: "quantity",
   costPrice: "",
+  importCost: "",
   sellingPrice: "",
   details: "",
   img: "",
@@ -64,7 +66,7 @@ function prepare(rows, shared) {
       )
         fail("تعداد باید عدد صحیح بین 1 و 1000 باشد.");
     }
-    for (const key of ["costPrice", "sellingPrice"])
+    for (const key of ["costPrice", "sellingPrice", "importCost"])
       if (row[key] !== "") {
         result[key] = Number(row[key]);
         if (
@@ -83,7 +85,14 @@ function prepare(rows, shared) {
   );
   if (!parsed.length || parsed.length > 200 || count > 1000)
     throw new Error("هر ورود باید 1 تا 200 ردیف و حداکثر 1000 رول داشته باشد.");
-  return { ...shared, rows: parsed };
+  if (shared.supplierId && parsed.some((r) => r.costPrice == null))
+    throw new Error("برای حساب تهیه‌کننده، قیمت خرید تمام اجناس را وارد کنید.");
+  return {
+    ...shared,
+    supplierId: shared.supplierId || undefined,
+    paidAmount: Number(shared.paidAmount || 0),
+    rows: parsed,
+  };
 }
 export default function DeliveryForm({ onClose }) {
   const { settings, refresh, notice, money, date } = useStore();
@@ -92,6 +101,8 @@ export default function DeliveryForm({ onClose }) {
   const [uploading, setUploading] = useState(false);
   const [shared, setShared] = useState({
     supplier: "",
+    supplierId: "",
+    paidAmount: "0",
     reference: "",
     entryDate: today(),
   });
@@ -239,6 +250,34 @@ export default function DeliveryForm({ onClose }) {
               },
             ]}
           />
+          <p>
+            مجموع خرید از شرکت:{" "}
+            {money(
+              review.rows.reduce(
+                (sum, r) =>
+                  sum +
+                  (r.costPrice || 0) *
+                    (r.lengths
+                      ? r.lengths.reduce((a, b) => a + b, 0)
+                      : r.length * r.quantity),
+                0,
+              ),
+            )}
+          </p>
+          <p>
+            تهیه‌کننده: {shared.supplier || "بدون حساب"} · پرداخت اولیه:{" "}
+            {money(Number(shared.paidAmount || 0))}
+          </p>
+          <p>
+            هزینهٔ ورود مجموعی:{" "}
+            {money(
+              review.rows.reduce(
+                (sum, r) =>
+                  sum + (r.importCost || 0) * (r.lengths?.length || r.quantity),
+                0,
+              ),
+            )}
+          </p>
           <details className="delivery-extra">
             <summary>دیدن معلومات بیشتر</summary>
             <p>
@@ -271,6 +310,26 @@ export default function DeliveryForm({ onClose }) {
       ) : (
         <form onSubmit={preview} noValidate>
           <fieldset disabled={busy || uploading} className="delivery-fields">
+            <SupplierPicker
+              onChange={(supplier) =>
+                setShared((s) => ({
+                  ...s,
+                  supplierId: supplier?._id || "",
+                  supplier: supplier?.name || "",
+                }))
+              }
+            />
+            <Field
+              label={`پرداخت اولیه به تهیه‌کننده (${settings?.currency || "USD"})`}
+              type="number"
+              min="0"
+              step="0.01"
+              value={shared.paidAmount}
+              onChange={(e) =>
+                setShared((s) => ({ ...s, paidAmount: e.target.value }))
+              }
+              hint="صفر = خرید قرضی. هزینهٔ حمل جدا از حساب تهیه‌کننده ثبت می‌شود."
+            />
             {rows.map((row, i) => {
               const expanded = (active || rows[0]?.id) === row.id;
               return (
@@ -364,6 +423,17 @@ export default function DeliveryForm({ onClose }) {
                           onChange={(e) =>
                             update(row.id, "costPrice", e.target.value)
                           }
+                        />
+                        <Field
+                          label={`هزینهٔ ورود هر رول (${settings?.currency || "USD"})`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={row.importCost}
+                          onChange={(e) =>
+                            update(row.id, "importCost", e.target.value)
+                          }
+                          hint="برای هر رول این ردیف؛ به قیمت خرید اضافه می‌شود."
                         />
                       </div>
                       <label className="delivery-length-switch">

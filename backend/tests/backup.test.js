@@ -1,3 +1,6 @@
+import Supplier from "../models/Supplier.js";
+import SupplierEntry from "../models/SupplierEntry.js";
+import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
@@ -112,7 +115,10 @@ before(async () => {
     phone: "0701234567",
     img: photoUrl,
   });
+  const supplier = await post("suppliers", { name: "Backup Supplier" });
   const delivery = await post("deliveries", {
+    supplierId: supplier._id,
+    paidAmount: 100,
     supplier: "Supplier",
     reference: "BACKUP",
     entryDate: "2026-09-29",
@@ -124,6 +130,8 @@ before(async () => {
         width: 4,
         length: 30,
         quantity: 2,
+        costPrice: 10,
+        importCost: 30,
       },
     ],
   });
@@ -198,6 +206,9 @@ test("export includes every durable collection, BSON values, password hashes and
       "payments",
       "counters",
       "customerprices",
+      "customerpricehistories",
+      "suppliers",
+      "supplierentries",
       "deliveries",
       "users",
       "auditevents",
@@ -273,6 +284,12 @@ test("restore is atomic, restores hashes, photos and ids, creates safety copy an
   assert.equal(await Customer.countDocuments(), 1);
   assert.equal(await Sale.countDocuments(), 1);
   assert.equal(await Payment.countDocuments(), 1);
+  assert.equal(
+    (await Supplier.findOne({ name: "Backup Supplier" })).balance,
+    500,
+  );
+  assert.equal(await SupplierEntry.countDocuments(), 2);
+  assert.ok(await CustomerPriceHistory.countDocuments());
   assert.deepEqual(
     await readFile(join(process.env.UPLOAD_DIR, photoUrl.split("/").pop())),
     photoContent,
@@ -379,4 +396,27 @@ test("backup waits for an in-flight write and includes its committed data", asyn
     Customer.collection.insertOne = original;
     await Promise.allSettled([saved, exported].filter(Boolean));
   }
+});
+
+test("backups predating supplier accounts and price history remain compatible", async () => {
+  const legacy = editBackup(backup, (p) => {
+    for (const collection of [
+      "suppliers",
+      "supplierentries",
+      "customerpricehistories",
+    ])
+      delete p.collections[collection];
+    for (const collection of ["vinylrolls", "deliveries"])
+      for (const doc of p.collections[collection]) delete doc.supplierId;
+  });
+  const result = await validateBackup(legacy);
+  assert.equal(result.collections.suppliers.length, 0);
+  assert.equal(result.collections.customerpricehistories.length, 0);
+});
+
+test("a new-format backup cannot silently omit a supplier ledger collection", async () => {
+  const incomplete = editBackup(backup, (p) => {
+    delete p.collections.supplierentries;
+  });
+  await assert.rejects(() => validateBackup(incomplete));
 });

@@ -300,6 +300,15 @@ export default function Inventory() {
                 ? {
                     "قیمت خرید / متر طولی":
                       view.costPrice == null ? "—" : money(view.costPrice),
+                    "طول اصلی خرید":
+                      view.originalLength == null
+                        ? "—"
+                        : `${number(view.originalLength)} متر`,
+                    "هزینهٔ ورود رول": money(view.importCost || 0),
+                    "قیمت تمام‌شده فی متر":
+                      view.landedCostPerMeter == null
+                        ? "—"
+                        : money(view.landedCostPerMeter),
                   }
                 : {}),
               ثبت‌کننده: view.createdByName || "رکورد قبلی",

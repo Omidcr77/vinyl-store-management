@@ -1,5 +1,7 @@
+import { randomUUID } from "../utils/uuid";
+import SupplierPicker from "../components/SupplierPicker";
 import ImagePicker from "../components/ImagePicker";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layers3 } from "lucide-react";
 import { api } from "../services/api";
@@ -25,6 +27,7 @@ export default function RollForm({ onClose }) {
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
+  const key = useRef(randomUUID());
   const roll = id ? data : {};
   const close = onClose || (() => navigate("/inventory"));
   async function submit(e) {
@@ -36,10 +39,14 @@ export default function RollForm({ onClose }) {
         "length",
         "width",
         "costPrice",
+        "importCost",
+        "paidAmount",
         "sellingPrice",
       ]);
+      if (!values.supplierId) delete values.supplierId;
       await api(id ? `/vinyl/${id}` : "/vinyl", {
         method: id ? "PUT" : "POST",
+        headers: { "Idempotency-Key": key.current },
         body: values,
       });
       refresh();
@@ -148,6 +155,33 @@ export default function RollForm({ onClose }) {
                   min="0"
                   defaultValue={roll.sellingPrice}
                 />
+                <Field
+                  label={`هزینهٔ حمل و ورود این رول (${settings?.currency || "USD"})`}
+                  name="importCost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100000000"
+                  defaultValue={roll.importCost || 0}
+                  hint="مجموع هزینهٔ همین رول؛ جدا از مبلغ پرداختی به شرکت."
+                />
+                <SupplierPicker
+                  defaultId={roll.supplierId}
+                  defaultName={roll.supplier}
+                  disabled={Boolean(id)}
+                />
+                {!id && (
+                  <Field
+                    label="پرداخت اولیه به تهیه‌کننده"
+                    name="paidAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    max="100000000"
+                    defaultValue="0"
+                    hint="برای خرید قرضی صفر بگذارید. پرداخت اضافی به طلب شما تبدیل می‌شود."
+                  />
+                )}
                 <Field
                   label="تهیه‌کننده"
                   name="supplier"

@@ -34,7 +34,21 @@ export function staffPrivacy(req, res, next) {
   const original = res.json.bind(res);
   res.json = (body) => {
     const clean = JSON.parse(JSON.stringify(body), (key, value) =>
-      ["costPrice", "inventoryValue"].includes(key) ? undefined : value,
+      [
+        "costPrice",
+        "inventoryValue",
+        "importCost",
+        "purchaseTotal",
+        "landedCostTotal",
+        "landedCostPerMeter",
+        "costCurrency",
+        "costAmount",
+        "grossProfit",
+        "costKnown",
+        "costPerMeter",
+      ].includes(key)
+        ? undefined
+        : value,
     );
     return original(clean);
   };

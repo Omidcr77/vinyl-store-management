@@ -20,6 +20,11 @@ export async function salesSummary(filter = {}) {
         _id: null,
         count: { $sum: 1 },
         totalSales: sum("totalAmount"),
+        costAmount: sum("costAmount"),
+        grossProfit: sum("grossProfit"),
+        uncostedSales: {
+          $sum: { $cond: [{ $eq: ["$costKnown", true] }, 0, 1] },
+        },
         initialPaid: sum("paidAmount"),
         outstanding: sum("remainingBalance"),
         metersSold: sum("soldLength"),
@@ -30,6 +35,9 @@ export async function salesSummary(filter = {}) {
       $project: {
         _id: 0,
         count: 1,
+        costAmount: { $round: ["$costAmount", 2] },
+        grossProfit: { $round: ["$grossProfit", 2] },
+        uncostedSales: 1,
         totalSales: { $round: ["$totalSales", 2] },
         totalPaid: {
           $round: [{ $subtract: ["$totalSales", "$outstanding"] }, 2],
@@ -44,6 +52,9 @@ export async function salesSummary(filter = {}) {
   return (
     result || {
       count: 0,
+      costAmount: 0,
+      grossProfit: 0,
+      uncostedSales: 0,
       totalSales: 0,
       totalPaid: 0,
       initialPaid: 0,
@@ -63,7 +74,17 @@ export async function inventorySummary(filter = { archived: false }) {
         remainingMeters: sum("length"),
         remainingArea: { $sum: { $multiply: ["$length", "$width"] } },
         inventoryValue: {
-          $sum: { $multiply: ["$length", { $ifNull: ["$costPrice", 0] }] },
+          $sum: {
+            $multiply: [
+              "$length",
+              {
+                $ifNull: [
+                  "$landedCostPerMeter",
+                  { $ifNull: ["$costPrice", 0] },
+                ],
+              },
+            ],
+          },
         },
       },
     },

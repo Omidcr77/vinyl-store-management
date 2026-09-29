@@ -188,6 +188,7 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
       };
       await staff.call("post", "/api/vinyl").send(rollBody).expect(403);
       for (const path of [
+        "/api/suppliers",
         "/api/reports/inventory",
         "/api/exports/vinyl",
         "/api/deliveries/template",
@@ -201,6 +202,13 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
         await staff.call("get", `/api/vinyl/${roll._id}`).expect(200)
       ).body.data;
       assert.equal(visible.costPrice, undefined);
+      for (const key of [
+        "importCost",
+        "purchaseTotal",
+        "landedCostPerMeter",
+        "landedCostTotal",
+      ])
+        assert.equal(visible[key], undefined);
       const dashboard = (
         await staff.call("get", "/api/dashboard/summary").expect(200)
       ).body.data;
@@ -233,6 +241,8 @@ test("authentication, roles, audit and session lifecycle", async (t) => {
           .expect(201)
       ).body.data;
       assert.equal(sale.createdBy, staff.user._id);
+      assert.equal(sale.grossProfit, undefined);
+      assert.equal(sale.items[0].costAmount, undefined);
       await staff
         .call("post", "/api/sales")
         .set("Idempotency-Key", "security-sale-123")

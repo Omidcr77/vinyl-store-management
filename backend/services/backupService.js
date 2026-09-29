@@ -1,3 +1,7 @@
+import { migratePriceHistory } from "./priceHistoryMigration.js";
+import Supplier from "../models/Supplier.js";
+import SupplierEntry from "../models/SupplierEntry.js";
+import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import sharp from "sharp";
 import mongoose from "mongoose";
 import { gzip, gunzip } from "node:zlib";
@@ -29,6 +33,9 @@ const EJSON = mongoose.mongo.BSON.EJSON;
 export const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
 const models = [
+  Supplier,
+  SupplierEntry,
+  CustomerPriceHistory,
   Settings,
   VinylRoll,
   Customer,
@@ -92,6 +99,11 @@ export async function createBackup() {
           if (!options.unique) continue;
           const seen = new Set();
           for (const doc of docs) {
+            if (
+              options.partialFilterExpression?.source &&
+              doc.source !== options.partialFilterExpression.source
+            )
+              continue;
             if (
               options.partialFilterExpression?.idempotencyKey?.$type ===
                 "string" &&
@@ -196,6 +208,19 @@ export async function validateBackup(buffer) {
     envelope.sha256 !== digest(JSON.stringify(p))
   )
     throw bad();
+  // Backups from before supplier accounts had none of these collections.
+  const addedCollections = [Supplier, SupplierEntry, CustomerPriceHistory].map(
+    (model) => model.collection.name,
+  );
+  const missingCollections = addedCollections.filter(
+    (name) => !Object.hasOwn(p.collections, name),
+  );
+  if (
+    missingCollections.length &&
+    missingCollections.length !== addedCollections.length
+  )
+    throw bad("بکاپ حساب تهیه‌کنندگان یا تاریخچهٔ نرخ‌ها ناقص است.");
+  for (const name of missingCollections) p.collections[name] = [];
   const expected = models.map((model) => model.collection.name).sort();
   if (
     JSON.stringify(Object.keys(p.collections).sort()) !==
@@ -236,6 +261,11 @@ export async function validateBackup(buffer) {
       if (!options.unique) continue;
       const seen = new Set();
       for (const doc of docs) {
+        if (
+          options.partialFilterExpression?.source &&
+          doc.source !== options.partialFilterExpression.source
+        )
+          continue;
         if (
           options.partialFilterExpression?.idempotencyKey?.$type === "string" &&
           typeof doc.idempotencyKey !== "string"
@@ -298,6 +328,24 @@ export async function validateBackup(buffer) {
     for (const a of payment.allocations || [])
       if (!saleIds.has(String(a.saleId)))
         throw bad("فروش مرتبط با رسید در بکاپ موجود نیست.");
+  const supplierIds = ids(Supplier);
+  for (const doc of [
+    ...get(SupplierEntry),
+    ...get(VinylRoll),
+    ...get(Delivery),
+  ])
+    if (doc.supplierId && !supplierIds.has(String(doc.supplierId)))
+      throw bad("تهیه‌کنندهٔ مرتبط در بکاپ موجود نیست.");
+  for (const supplier of get(Supplier)) {
+    const balance = get(SupplierEntry)
+      .filter((e) => String(e.supplierId) === String(supplier._id))
+      .reduce((sum, e) => sum + e.deltaMinor, 0);
+    if (balance !== supplier.balanceMinor)
+      throw bad("مانده حساب تهیه‌کننده با معاملات سازگار نیست.");
+  }
+  for (const history of get(CustomerPriceHistory))
+    if (!customerIds.has(String(history.customerId)))
+      throw bad("مشتری تاریخچهٔ نرخ موجود نیست.");
   const counters = new Map(get(Counter).map((c) => [c._id, c.value]));
   const checkCounter = (name, number) => {
     if (
@@ -417,6 +465,7 @@ export async function restoreBackup(validated, user) {
             session,
           });
       }
+      await migratePriceHistory(session);
       await LoginSession.deleteMany({}).session(session);
       await audit(
         "backup.restore",

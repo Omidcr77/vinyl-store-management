@@ -10,6 +10,7 @@ export default function SaleTable({
   view = "table",
   extraColumns = [],
   actionColumns = [],
+  showProfit = false,
 }) {
   const { date, money } = useStore();
   const [print, setPrint] = useState(null);
@@ -98,6 +99,18 @@ export default function SaleTable({
             label: "پرداخت",
             render: (r) => <Badge value={r.paymentType} />,
           },
+          ...(showProfit
+            ? [
+                {
+                  key: "grossProfit",
+                  label: "سود ناخالص",
+                  render: (r) =>
+                    r.costKnown
+                      ? money(r.grossProfit, r.currency)
+                      : "قیمت خرید نامعلوم",
+                },
+              ]
+            : []),
           ...actionColumns,
         ]}
       />

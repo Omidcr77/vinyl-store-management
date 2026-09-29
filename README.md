@@ -310,6 +310,18 @@ Customer details include `customer`, paginated `purchases`, paginated `receipts`
 
 Socket.io broadcasts `store:changed` after successful writes. The UI then refetches REST data. Reads/writes continue through REST if the live connection is temporarily unavailable.
 
+## Purchase costs and supplier accounts
+
+Managers and administrators can use **تهیه‌کنندگان** to create supplier/company accounts, see amounts payable (positive balance) or receivable (negative balance), record payments, advances, money lent/borrowed, opening balances and explained corrections. All amounts use the store currency. Each entry keeps its date, reference, description, author and balance at posting. Manual entries can be reversed once, with the original and reversal retained. Supplier statements download as CSV or PDF and include all entries in posting order; date filters on screen do not change the lifetime balance.
+
+On **افزودن رکورد** or **ثبت ورود اجناس**, select a supplier account and enter the purchase price per linear meter, import/transport cost **per physical roll**, and initial amount paid to the supplier (zero means credit). Original length and purchase cost are saved separately from remaining stock. Goods cost posts to the supplier ledger atomically with the stock; import cost affects landed cost but does not increase the supplier bill. A payment exceeding the bill becomes an advance/receivable. Purchase costs cannot be changed after supplier posting or a sale; use a new record for new stock and explained ledger entries for financial corrections. Archiving stock does not cancel the supplier purchase. Physical supplier returns and foreign-exchange accounting are not automated.
+
+Each sale snapshots its landed cost and gross profit. Reports and sales exports show gross profit separately from payments and debt. Entire bills with any unknown purchase cost are excluded from profit totals and counted visibly; historical bills are not assigned invented costs. Inventory value uses purchase plus import cost. Gross profit excludes day-to-day shop expenses.
+
+Every customer sale saves its unit price automatically. The next sale suggests the last price matching **type, color, width and pricing method**, unless a more recently saved customer-specific rate overrides it. Staff can adjust the price before selling. Customer accounts show rate history; changed or removed suggestions never rewrite bills. Existing bill prices are copied into history once during upgrade/startup; no historical sale amounts change.
+
+`/api/suppliers` and `/api/suppliers/:id` manage profiles. `POST /api/suppliers/:id/entries` records manual transactions; `POST /api/suppliers/:id/entries/:entryId/reverse` reverses an eligible entry. Both require an `Idempotency-Key`; single-roll purchases linked to a supplier require one as well. Delivery requests accept `supplierId`, `paidAmount`, and per-row `importCost`. Full backups include suppliers, ledger entries and price history. Backups from before these features remain importable.
+
 ## Local operation, backups and limitations
 
 This application binds to loopback by default and includes authenticated role-based access. Network deployments require HTTPS with `NODE_ENV=production`, an exact `CLIENT_URL`, and a properly configured reverse proxy. Do not expose MongoDB publicly. The built-in login limiter is process-local; multi-instance deployments need a shared limiter.
@@ -324,7 +336,7 @@ No automatic backup scheduler is included. Save copies off this machine regularl
 
 The repository excludes local configuration (`.env`), database files, uploaded photos, backups, dependencies, build output and test artifacts. A fresh clone needs the setup steps above; pushing the source code does not back up the store's records or photos.
 
-Financial corrections/returns are not implemented; invoices and receipts cannot be deleted from the UI. Establish a reviewed correction process before entering real financial records that may need reversals.
+Customer and stock deletion archives records. Deleting a sale retains a snapshot, restores stock and updates customer balances; original receipts remain. Supplier manual entries use explicit reversals. A complete returns/refunds workflow is not included.
 
 The last dependency audit reported two moderate findings in ExcelJS's transitive UUID dependency (and the parent package), with no high or critical findings. The advisory concerns UUID v3/v5/v6 buffer handling; ExcelJS uses v4 here. Review dependency updates before network deployment.
 

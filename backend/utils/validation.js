@@ -24,6 +24,9 @@ export const rollInput = z.object({
   entryDate: date.optional(),
   details: z.string().max(3000).default(""),
   costPrice: price.optional(),
+  importCost: price.optional(),
+  supplierId: id.optional(),
+  paidAmount: price.optional(),
   sellingPrice: price.optional(),
   supplier: text.optional(),
   img: image.optional(),
@@ -32,7 +35,13 @@ export const rollEditInput = rollInput.extend({
   length: positive.or(z.literal(0)),
 });
 export const deliveryRowInput = rollInput
-  .omit({ entryDate: true, supplier: true, length: true })
+  .omit({
+    entryDate: true,
+    supplier: true,
+    supplierId: true,
+    paidAmount: true,
+    length: true,
+  })
   .extend({
     length: positive.optional(),
     quantity: z.number().int().min(1).max(1000).optional(),
@@ -52,6 +61,8 @@ export const deliveryRowInput = rollInput
 export const deliveryInput = z
   .object({
     supplier: text.default(""),
+    supplierId: id.optional(),
+    paidAmount: price.default(0),
     reference: text.default(""),
     entryDate: date,
     rows: z.array(deliveryRowInput).min(1).max(200),
@@ -145,3 +156,30 @@ export const settingsInput = z.object({
   invoiceFooter: z.string().max(500),
 });
 export const keyInput = z.string().min(8).max(100);
+
+export const supplierInput = z.object({
+  name: text.min(1),
+  phone: text.default(""),
+  address: z.string().trim().max(500).default(""),
+  notes: z.string().trim().max(3000).default(""),
+});
+export const supplierEntryInput = z.object({
+  kind: z.enum([
+    "payment",
+    "receipt",
+    "loan_given",
+    "loan_received",
+    "opening_payable",
+    "opening_receivable",
+    "adjust_payable",
+    "adjust_receivable",
+  ]),
+  amount: price.refine((v) => v > 0, "مبلغ باید بیشتر از صفر باشد."),
+  date: date.optional(),
+  reference: text.default(""),
+  details: z.string().trim().min(1).max(3000),
+  paymentMethod: z.enum(["cash", "bank", "other"]).default("cash"),
+});
+export const supplierReversalInput = z.object({
+  details: z.string().trim().min(1).max(3000),
+});

@@ -14,6 +14,7 @@ const columns = [
   "costPrice",
   "sellingPrice",
   "details",
+  "importCost",
 ];
 const aliases = {
   نام: "vinylName",
@@ -29,6 +30,7 @@ const aliases = {
   "قیمت خرید": "costPrice",
   "نرخ پیشنهادی": "sellingPrice",
   توضیحات: "details",
+  "هزینهٔ ورود هر رول": "importCost",
 };
 export async function deliverySave(req, res) {
   const result = await createDelivery(
@@ -55,7 +57,19 @@ export async function deliveryTemplate(req, res) {
   const book = new ExcelJS.Workbook(),
     sheet = book.addWorksheet("ورود اجناس");
   sheet.views = [{ rightToLeft: true }];
-  sheet.addRow(["نام فرش و قالین", "نوع", "رنگ", "طول", "عرض", "تعداد", "طول‌ها", "قیمت خرید", "نرخ پیشنهادی", "توضیحات"]);
+  sheet.addRow([
+    "نام فرش و قالین",
+    "نوع",
+    "رنگ",
+    "طول",
+    "عرض",
+    "تعداد",
+    "طول‌ها",
+    "قیمت خرید",
+    "نرخ پیشنهادی",
+    "توضیحات",
+    "هزینهٔ ورود هر رول",
+  ]);
   sheet.addRow(["فرش طرح چوب", "فرش", "قهوه‌ای", 30, 4, 20, "", 10, 15]);
   sheet.addRow([
     "قالین گل‌دار",

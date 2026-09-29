@@ -1,3 +1,4 @@
+import * as suppliers from "../controllers/supplierController.js";
 import { bulkDelete, singleDelete } from "../services/deleteService.js";
 import { Router } from "express";
 import { allowRoles } from "../middleware/auth.js";
@@ -8,11 +9,25 @@ import { documentPdf, receiptData } from "../services/documentService.js";
 import { statementGet, statementPdf } from "../services/statementService.js";
 import {
   priceList,
+  priceHistory,
+  priceSuggestion,
   priceSave,
   priceDelete,
 } from "../controllers/customerPriceController.js";
 const router = Router();
 const management = allowRoles("admin", "manager");
+router.use("/suppliers", management);
+router
+  .route("/suppliers")
+  .get(suppliers.supplierList)
+  .post(suppliers.supplierSave);
+router
+  .route("/suppliers/:id")
+  .get(suppliers.supplierGet)
+  .put(suppliers.supplierSave);
+router.get("/suppliers/:id/statement", suppliers.supplierStatement);
+router.post("/suppliers/:id/entries", suppliers.entryCreate);
+router.post("/suppliers/:id/entries/:entryId/reverse", suppliers.entryReverse);
 router.use(["/deliveries", "/reports", "/exports"], management);
 router.use("/vinyl", (req, res, next) =>
   ["GET", "HEAD"].includes(req.method) ? next() : management(req, res, next),
@@ -49,6 +64,8 @@ router
   .delete(management, singleDelete("customers"));
 router.get("/customers/:id/statement", statementGet);
 router.get("/customers/:id/statement/pdf", statementPdf);
+router.get("/customers/:id/price-history", priceHistory);
+router.get("/customers/:id/price-suggestion", priceSuggestion);
 router.route("/customers/:id/prices").get(priceList).put(priceSave);
 router.delete("/customers/:id/prices/:priceId", priceDelete);
 router.route("/sales").get(c.saleList).post(c.saleCreate);

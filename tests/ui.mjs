@@ -1033,6 +1033,108 @@ try {
   console.log("PASS: responsive layouts and mobile navigation");
   assert.deepEqual(errors, [], "Browser console or runtime errors");
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(`${base}/suppliers`);
+  await page
+    .getByRole("button", { name: "افزودن تهیه‌کننده", exact: true })
+    .click();
+  await page
+    .getByLabel("نام شرکت / تهیه‌کننده", { exact: true })
+    .fill("UI Supplier Company");
+  await page.getByLabel("شمارهٔ تماس", { exact: true }).fill("0701122334");
+  await page
+    .getByRole("button", { name: "ذخیرهٔ تهیه‌کننده", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  const uiSupplier = (await api("/suppliers?search=UI%20Supplier")).items[0];
+  await page.goto(`${base}/inventory/new`);
+  await page.getByRole("dialog").waitFor();
+  await page
+    .getByLabel("نام فرش و قالین", { exact: true })
+    .fill("UI Purchased Roll");
+  await page.getByLabel("نوع", { exact: true }).fill("Imported");
+  await page.getByLabel("رنگ", { exact: true }).fill("Blue");
+  await page.getByLabel("طول (متر)", { exact: true }).fill("30");
+  await page.getByLabel(/قیمت خرید فی متر طولی/).fill("100");
+  await page.getByLabel(/هزینهٔ حمل و ورود این رول/).fill("300");
+  await page
+    .getByLabel("پرداخت اولیه به تهیه‌کننده", { exact: true })
+    .fill("1000");
+  await page
+    .getByRole("dialog")
+    .getByRole("textbox", { name: "جستجو", exact: true })
+    .fill("UI Supplier");
+  await page.getByRole("button", { name: /UI Supplier Company/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "افزودن رکورد", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  assert.equal(
+    (await api(`/suppliers/${uiSupplier._id}`)).supplier.balance,
+    2000,
+  );
+  const purchasedRoll = (await api("/vinyl?search=UI%20Purchased%20Roll"))
+    .items[0];
+  assert.equal(purchasedRoll.landedCostPerMeter, 110);
+  await page.goto(`${base}/suppliers/${uiSupplier._id}`);
+  await page.getByRole("button", { name: "ثبت معامله", exact: true }).click();
+  await page
+    .getByLabel("نوع معامله", { exact: true })
+    .selectOption("loan_given");
+  await page.getByLabel("مبلغ", { exact: true }).fill("2500");
+  await page
+    .getByLabel("توضیح معامله", { exact: true })
+    .fill("UI supplier advance");
+  await page.getByRole("button", { name: "ثبت در حساب", exact: true }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  assert.equal(
+    (await api(`/suppliers/${uiSupplier._id}`)).supplier.balance,
+    -500,
+  );
+  await page.getByRole("button", { name: "لغو معامله", exact: true }).click();
+  await page.getByLabel("توضیح معامله", { exact: true }).fill("UI correction");
+  await page.getByRole("button", { name: "ثبت در حساب", exact: true }).click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  assert.equal(
+    (await api(`/suppliers/${uiSupplier._id}`)).supplier.balance,
+    2000,
+  );
+  const supplierDownload = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "صورت‌حساب PDF", exact: true })
+    .click();
+  const supplierPdf = await supplierDownload;
+  await supplierPdf.saveAs("test-results/supplier-statement.pdf");
+  assert.ok((await stat("test-results/supplier-statement.pdf")).size > 1000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
+  await page.screenshot({
+    animations: "disabled",
+    path: "test-results/supplier-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(`${base}/customers/${multiCustomer._id}`);
+  await page
+    .getByRole("heading", { name: "تاریخچهٔ نرخ‌ها", exact: true })
+    .waitFor();
+  assert.equal(
+    (await api(`/customers/${multiCustomer._id}/price-history`)).total,
+    3,
+  );
+  await page.goto(`${base}/reports`);
+  await page
+    .getByText("سود ناخالص فروشات با قیمت معلوم", { exact: true })
+    .waitFor();
+  console.log(
+    "PASS: supplier creation, purchase costs, automatic payable, loans, reversals, PDF, mobile layout and customer price history",
+  );
+
   const bulkCustomerA = await api("/customers", {
     name: "Bulk UI A",
     phone: "0701111111",

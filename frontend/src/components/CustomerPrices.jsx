@@ -6,7 +6,7 @@ import { Table, Field, Pagination, Modal, ErrorMessage, Loading } from "./UI";
 import { formValues } from "../utils/format";
 
 export default function CustomerPrices({ customerId }) {
-  const { money, refresh, notice } = useStore();
+  const { money, date, refresh, notice } = useStore();
   const [page, setPage] = useState(1),
     [edit, setEdit] = useState(null),
     [remove, setRemove] = useState(null),
@@ -18,6 +18,10 @@ export default function CustomerPrices({ customerId }) {
     loading,
   } = useResource(
     `/customers/${customerId}/prices?${query({ page, order: "asc" })}`,
+  );
+  const [historyPage, setHistoryPage] = useState(1);
+  const history = useResource(
+    `/customers/${customerId}/price-history?${query({ page: historyPage })}`,
   );
   function open(item) {
     setError("");
@@ -63,7 +67,8 @@ export default function CustomerPrices({ customerId }) {
         <div>
           <h2>نرخ‌های اختصاصی مشتری</h2>
           <p>
-            برای هر نوع فرش و قالین، نرخ فی متر طولی و متر مربع جداگانه تعیین کنید.
+            برای هر نوع فرش و قالین، نرخ فی متر طولی و متر مربع جداگانه تعیین
+            کنید.
           </p>
         </div>
         <button onClick={() => open({})}>افزودن نرخ</button>
@@ -109,6 +114,51 @@ export default function CustomerPrices({ customerId }) {
         />
       )}
       <Pagination data={data} onChange={setPage} />
+      <h3>تاریخچهٔ نرخ‌ها</h3>
+      <p className="muted">
+        نرخ هر فروش خودکار محفوظ می‌ماند. نرخ پیشنهادی فروش قبلی بر اساس نوع،
+        رنگ، عرض و روش قیمت‌گذاری است؛ بل‌های قبلی تغییر نمی‌کنند.
+      </p>
+      <ErrorMessage error={history.error} />
+      <Table
+        rows={history.data?.items}
+        columns={[
+          {
+            key: "createdAt",
+            label: "تاریخ ثبت",
+            render: (r) => date(r.createdAt),
+          },
+          { key: "type", label: "نوع" },
+          { key: "color", label: "رنگ" },
+          { key: "width", label: "عرض" },
+          {
+            key: "pricingMethod",
+            label: "روش",
+            render: (r) =>
+              r.pricingMethod === "area" ? "فی متر مربع" : "فی متر طولی",
+          },
+          {
+            key: "unitPrice",
+            label: "نرخ",
+            render: (r) => money(r.unitPrice, r.currency),
+          },
+          {
+            key: "source",
+            label: "منبع",
+            render: (r) =>
+              r.voided
+                ? "فروش حذف‌شده"
+                : {
+                    sale: "فروش",
+                    saved: "نرخ اختصاصی",
+                    removed: "حذف پیشنهاد",
+                    previous: "نرخ قبلی",
+                  }[r.source],
+          },
+          { key: "billNumber", label: "شمارهٔ بل" },
+        ]}
+      />
+      <Pagination data={history.data} onChange={setHistoryPage} />
       {edit && (
         <Modal
           title={edit._id ? "ویرایش نرخ مشتری" : "افزودن نرخ مشتری"}

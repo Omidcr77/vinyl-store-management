@@ -48,13 +48,15 @@ export default function SaleLine({
     );
     if (!roll || !customer) return;
     api(
-      `/customers/${customer._id}/prices?${query({ type: roll.type, pricingMethod: method, limit: 1 })}`,
+      `/customers/${customer._id}/price-suggestion?${query({ vinylId: roll._id, pricingMethod: method })}`,
     )
       .then((result) => {
-        if (active && result.items[0]) {
-          patch({ price: result.items[0].unitPrice });
+        if (active && result) {
+          patch({ price: result.unitPrice });
           setSource(
-            `نرخ ذخیره‌شدهٔ ${customer.name} برای نوع «${roll.type}». قابل تغییر برای این فروش است.`,
+            result.source === "sale"
+              ? `نرخ فروش قبلی ${customer.name} برای همین نوع، رنگ و عرض. قابل تغییر است.`
+              : `نرخ ذخیره‌شدهٔ ${customer.name} برای نوع «${roll.type}». قابل تغییر برای این فروش است.`,
           );
         }
       })

@@ -22,7 +22,9 @@ export default function Lookup({ kind, selected, onSelect, excludedIds = [] }) {
               : selected.name
             : kind === "customers"
               ? "مشتری گذری"
-              : "یک رول فرش و قالین انتخاب کنید"}
+              : kind === "suppliers"
+                ? "انتخاب تهیه‌کننده"
+                : "یک رول فرش و قالین انتخاب کنید"}
         </strong>
         <button type="button" onClick={() => setOpen((v) => !v)}>
           {open ? "بستن" : "تغییر"}

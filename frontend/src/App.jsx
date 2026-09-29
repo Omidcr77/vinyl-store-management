@@ -1,3 +1,4 @@
+import Suppliers, { SupplierDetail } from "./pages/Suppliers";
 import { useState } from "react";
 import {
   NavLink,
@@ -37,6 +38,7 @@ const nav = [
   ["/inventory", "موجودی", Layers3],
   ["/sales", "فروشات", ReceiptText],
   ["/customers", "مشتریان", Users],
+  ["/suppliers", "تهیه‌کنندگان", Users],
   ["/reports", "گزارش‌ها", ChartNoAxesCombined],
 ];
 function Shell() {
@@ -51,6 +53,7 @@ function Shell() {
       sales: "فروشات",
       customers: "مشتریان",
       reports: "گزارش‌ها",
+      suppliers: "تهیه‌کنندگان",
       settings: "تنظیمات",
     }[location.pathname.split("/")[1]] || "نمای عمومی";
   return (
@@ -75,7 +78,10 @@ function Shell() {
         <div className="nav-label">بخش‌های دکان</div>
         <nav>
           {nav
-            .filter(([path]) => path !== "/reports" || canManage)
+            .filter(
+              ([path]) =>
+                !["/reports", "/suppliers"].includes(path) || canManage,
+            )
             .map(([path, label, Icon]) => (
               <NavLink key={path} to={path} end onClick={() => setMenu(false)}>
                 <Icon size={18} />
@@ -171,6 +177,22 @@ function Shell() {
             <Route path="/sales" element={<Sales />} />
             <Route path="/sales/new" element={<Sales create />} />
             <Route path="/sales/:id" element={<Sales detail />} />
+            <Route
+              path="/suppliers"
+              element={
+                <Access>
+                  <Suppliers />
+                </Access>
+              }
+            />
+            <Route
+              path="/suppliers/:id"
+              element={
+                <Access>
+                  <SupplierDetail />
+                </Access>
+              }
+            />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route

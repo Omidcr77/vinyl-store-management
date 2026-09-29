@@ -22,6 +22,10 @@ const columns = {
     "entryDate",
     "status",
     "costPrice",
+    "originalLength",
+    "importCost",
+    "landedCostPerMeter",
+    "costCurrency",
     "sellingPrice",
     "supplier",
   ],
@@ -40,6 +44,8 @@ const columns = {
     "pricePerMeter",
     "pricePerSquareMeter",
     "totalAmount",
+    "costAmount",
+    "grossProfit",
     "paidAmount",
     "creditApplied",
     "remainingBalance",
@@ -81,6 +87,12 @@ const headers = {
   entryDate: "تاریخ ورود",
   status: "وضعیت",
   costPrice: "قیمت خرید فی متر طولی",
+  originalLength: "طول اصلی",
+  importCost: "هزینهٔ ورود هر رول",
+  landedCostPerMeter: "قیمت تمام‌شده فی متر",
+  costCurrency: "واحد پول خرید",
+  costAmount: "هزینهٔ خرید فروش",
+  grossProfit: "سود ناخالص",
   sellingPrice: "نرخ پیشنهادی فی متر طولی",
   supplier: "تهیه‌کننده",
   billNumber: "شمارهٔ بل",
@@ -169,7 +181,12 @@ export async function exportTable(req, res) {
       ? {
           ...item,
           area: multiply(item.length, item.width),
-          inventoryValue: money(multiply(item.length, item.costPrice || 0)),
+          inventoryValue: money(
+            multiply(
+              item.length,
+              item.landedCostPerMeter ?? item.costPrice ?? 0,
+            ),
+          ),
         }
       : item;
   if (format === "csv") {

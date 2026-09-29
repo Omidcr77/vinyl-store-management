@@ -1,3 +1,7 @@
+import { migratePriceHistory } from "../services/priceHistoryMigration.js";
+import Supplier from "../models/Supplier.js";
+import SupplierEntry from "../models/SupplierEntry.js";
+import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import DeletedRecord from "../models/DeletedRecord.js";
 import mongoose from "mongoose";
 import Settings from "../models/Settings.js";
@@ -22,6 +26,9 @@ export async function connectDB(uri) {
   await Promise.all(
     [
       DeletedRecord,
+      Supplier,
+      SupplierEntry,
+      CustomerPriceHistory,
       Settings,
       VinylRoll,
       Customer,
@@ -36,6 +43,7 @@ export async function connectDB(uri) {
       AuthGuard,
     ].map((model) => model.init()),
   );
+  await migratePriceHistory();
   await AuthGuard.updateOne(
     { _id: "users" },
     { $setOnInsert: { revision: 0 } },

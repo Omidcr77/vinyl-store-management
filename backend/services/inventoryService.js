@@ -1,9 +1,11 @@
+import { purchaseFields, purchaseAccount } from "./purchaseService.js";
+import Supplier from "../models/Supplier.js";
 import { actorFields } from "./actor.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Settings from "../models/Settings.js";
 import Sale from "../models/Sale.js";
 import { nextSequence } from "../utils/billNumber.js";
-import { transaction } from "./transaction.js";
+import { transaction, idempotent } from "./transaction.js";
 import { required, AppError } from "../utils/errors.js";
 export const stockStatus = (length, threshold) =>
   length === 0 ? "sold" : length < threshold ? "low-stock" : "available";
@@ -14,9 +16,16 @@ export const lockSettings = (session) =>
     { $inc: { revision: 1 } },
     { new: true, session },
   );
-export async function saveRoll(data, id) {
-  return transaction(async (session) => {
+export async function saveRoll(data, id, key) {
+  const work = async (session, requestHash, scopedKey) => {
     const settings = await lockSettings(session);
+    if (data.supplierId)
+      data = {
+        ...data,
+        supplier: required(
+          await Supplier.findById(data.supplierId).session(session),
+        ).name,
+      };
     if (id) {
       const roll = required(
         await VinylRoll.findOne({ _id: id, archived: false }).session(session),
@@ -34,6 +43,35 @@ export async function saveRoll(data, id) {
         throw new AppError(
           "پس از فروش، ابعاد رول قابل تغییر نیست. برای موجودی تازه، رول جدید ثبت کنید.",
         );
+      const hasSales = await Sale.exists({
+        $or: [{ vinylId: id }, { "items.vinylId": id }],
+      }).session(session);
+      const costChanged = ["costPrice", "importCost", "supplierId"].some(
+        (key) =>
+          data[key] !== undefined &&
+          String(data[key]) !==
+            String(roll[key] ?? (key === "importCost" ? 0 : "")),
+      );
+      if ((roll.supplierId || hasSales) && costChanged)
+        throw new AppError(
+          "پس از ثبت حساب تهیه‌کننده یا فروش، قیمت خرید و تهیه‌کننده قابل تغییر نیست. برای خرید تازه رول جدید بسازید.",
+        );
+      if (data.paidAmount)
+        throw new AppError("پرداخت بعدی را در حساب تهیه‌کننده ثبت کنید.");
+      if (!roll.supplierId && data.supplierId)
+        throw new AppError(
+          "حساب خرید قبلی را از بخش تهیه‌کنندگان ثبت کنید؛ برای خرید تازه رول جدید بسازید.",
+        );
+      if (roll.supplierId && data.length !== roll.length)
+        throw new AppError("طول خرید ثبت‌شده قابل تغییر نیست.");
+      if (!hasSales && !roll.supplierId)
+        Object.assign(
+          roll,
+          purchaseFields(
+            { ...roll.toObject(), ...data, originalLength: data.length },
+            settings.currency,
+          ),
+        );
       Object.assign(roll, data, actorFields(), {
         status: stockStatus(data.length, settings.lowStockThreshold),
       });
@@ -43,6 +81,8 @@ export async function saveRoll(data, id) {
       [
         {
           ...data,
+          ...purchaseFields(data, settings.currency),
+          ...(scopedKey ? { idempotencyKey: scopedKey, requestHash } : {}),
           ...actorFields(true),
           rollNumber: await nextSequence("roll", session),
           status: stockStatus(data.length, settings.lowStockThreshold),
@@ -50,8 +90,23 @@ export async function saveRoll(data, id) {
       ],
       { session },
     );
+    await purchaseAccount(
+      {
+        supplierId: data.supplierId,
+        amount: roll.purchaseTotal,
+        paidAmount: data.paidAmount,
+        currency: settings.currency,
+        date: roll.entryDate,
+        vinylId: roll._id,
+        reference: `ROLL-${roll.rollNumber}`,
+      },
+      session,
+    );
     return roll;
-  });
+  };
+  return !id && key
+    ? idempotent(VinylRoll, key, data, work)
+    : transaction(work);
 }
 export async function archiveRoll(id) {
   return transaction(async (session) => {

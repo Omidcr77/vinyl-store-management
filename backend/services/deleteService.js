@@ -1,3 +1,4 @@
+import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import Decimal from "decimal.js";
 import { z } from "zod";
 import { id } from "../utils/validation.js";
@@ -96,6 +97,11 @@ export async function deleteRecords(kind, input) {
               record: sale.toObject(),
             },
           ],
+          { session },
+        );
+        await CustomerPriceHistory.updateMany(
+          { saleId: sale._id },
+          { $set: { voided: true } },
           { session },
         );
         await Sale.deleteOne({ _id: sale._id }).session(session);

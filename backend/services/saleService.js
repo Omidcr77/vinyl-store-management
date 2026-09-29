@@ -1,9 +1,10 @@
+import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
+import { rememberCustomerPrice } from "./priceHistoryService.js";
 import DeletedRecord from "../models/DeletedRecord.js";
 import { actorFields } from "./actor.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
-import CustomerPrice from "../models/CustomerPrice.js";
 import { idempotent } from "./transaction.js";
 import { lockSettings, stockStatus } from "./inventoryService.js";
 import { billNumber } from "../utils/billNumber.js";
@@ -92,7 +93,20 @@ export async function createSale(data, key) {
         );
         if (!updated.modifiedCount)
           throw new AppError("موجودی تغییر کرده است. دوباره کوشش کنید.", 409);
+        const unitCost = roll.landedCostPerMeter ?? roll.costPrice;
+        const costKnown =
+          unitCost != null &&
+          (!roll.costCurrency || roll.costCurrency === settings.currency);
+        const costAmount = costKnown
+          ? money(multiply(unitCost, input.soldLength))
+          : undefined;
         items.push({
+          costKnown,
+          costPerMeter: costKnown ? unitCost : undefined,
+          costAmount,
+          grossProfit: costKnown
+            ? subtract(totalAmount, costAmount)
+            : undefined,
           vinylId: roll._id,
           rollNumber: roll.rollNumber,
           vinylName: roll.vinylName,
@@ -158,6 +172,13 @@ export async function createSale(data, key) {
           {
             ...first,
             items,
+            costKnown: items.every((i) => i.costKnown),
+            costAmount: items.every((i) => i.costKnown)
+              ? sum("costAmount")
+              : undefined,
+            grossProfit: items.every((i) => i.costKnown)
+              ? sum("grossProfit")
+              : undefined,
             vinylName: multi
               ? items.map((i) => i.vinylName).join("، ")
               : first.vinylName,
@@ -199,22 +220,26 @@ export async function createSale(data, key) {
         ],
         { session },
       );
-      for (const rate of remembered.values())
-        await CustomerPrice.findOneAndUpdate(
-          {
+      if (customer)
+        await CustomerPriceHistory.insertMany(
+          items.map((item, itemIndex) => ({
+            itemIndex,
             customerId: customer._id,
-            type: rate.type,
-            pricingMethod: rate.pricingMethod,
-          },
-          {
-            $set: { unitPrice: rate.unitPrice, ...actorFields() },
-            $setOnInsert: {
-              createdBy: actorFields(true).createdBy,
-              createdByName: actorFields(true).createdByName,
-            },
-          },
-          { upsert: true, new: true, runValidators: true, session },
+            type: item.type,
+            color: item.color,
+            width: item.width,
+            pricingMethod: item.pricingMethod,
+            unitPrice: item.pricePerMeter ?? item.pricePerSquareMeter,
+            currency: settings.currency,
+            source: "sale",
+            saleId: sale._id,
+            billNumber: sale.billNumber,
+            ...actorFields(true),
+          })),
+          { session },
         );
+      for (const rate of remembered.values())
+        await rememberCustomerPrice(customer._id, rate, session);
       return sale;
     },
   );
