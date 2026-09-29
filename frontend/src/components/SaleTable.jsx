@@ -5,7 +5,12 @@ import { Table, Badge } from "./UI";
 import { useStore } from "../services/store";
 import { number } from "../utils/format";
 import { saleItems } from "../../../shared/sale-items.js";
-export default function SaleTable({ rows, view = "table", extraColumns = [] }) {
+export default function SaleTable({
+  rows,
+  view = "table",
+  extraColumns = [],
+  actionColumns = [],
+}) {
   const { date, money } = useStore();
   const [print, setPrint] = useState(null);
   return (
@@ -93,6 +98,7 @@ export default function SaleTable({ rows, view = "table", extraColumns = [] }) {
             label: "پرداخت",
             render: (r) => <Badge value={r.paymentType} />,
           },
+          ...actionColumns,
         ]}
       />
       {print && <SalePrint sale={print} onClose={() => setPrint(null)} />}

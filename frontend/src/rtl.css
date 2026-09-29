@@ -85,6 +85,7 @@
 }
 .record-card-actions {
   display: flex;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
   border-top: 1px solid #edf0eb;
@@ -165,7 +166,6 @@
   font-size: 12px;
 }
 .delete-icon {
-  order: 1;
   color: #dc2626;
   flex-shrink: 0;
 }

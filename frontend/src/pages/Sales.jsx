@@ -160,7 +160,8 @@ function SalesList({ create }) {
           <SaleTable
             rows={data?.items}
             view={recordView}
-            extraColumns={[...bulk.selectionColumns, ...bulk.deleteColumns]}
+            extraColumns={bulk.selectionColumns}
+            actionColumns={bulk.deleteColumns}
           />
         )}
         <Pagination data={data} onChange={setPage} />

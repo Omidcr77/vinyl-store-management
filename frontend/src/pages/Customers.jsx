@@ -90,7 +90,6 @@ export default function Customers() {
             rows={data?.items}
             columns={[
               ...bulk.selectionColumns,
-              ...bulk.deleteColumns,
               {
                 key: "name",
                 label: "مشتری",
@@ -122,6 +121,7 @@ export default function Customers() {
                   </Link>
                 ),
               },
+              ...bulk.deleteColumns,
             ]}
           />
         )}
