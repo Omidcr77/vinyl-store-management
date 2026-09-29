@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Printer } from "lucide-react";
 import { allRecords, query } from "../services/api";
@@ -16,14 +16,15 @@ import {
 import SaleTable from "../components/SaleTable";
 import PrintDocument from "../components/PrintDocument";
 import { number, today } from "../utils/format";
-function rangeFor(preset) {
+import { monthStart } from "../../../shared/calendar.js";
+function rangeFor(preset, calendar = "gregory") {
   const d = new Date(),
     end = today();
   if (preset === "all") return {};
   if (preset === "today") return { from: end, to: end };
   if (preset === "yesterday") d.setDate(d.getDate() - 1);
   if (preset === "week") d.setDate(d.getDate() - 6);
-  if (preset === "month") d.setDate(1);
+  if (preset === "month") return { from: monthStart(d, calendar), to: end };
   const from = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   return { from, to: preset === "yesterday" ? from : end };
 }
@@ -35,7 +36,11 @@ export default function Reports() {
     [print, setPrint] = useState(null),
     [busy, setBusy] = useState(false),
     [printError, setPrintError] = useState(""),
-    { money } = useStore();
+    { money, settings } = useStore();
+  useEffect(() => {
+    if (preset !== "custom")
+      setRange(rangeFor(preset, settings?.calendar || "gregory"));
+  }, [preset, settings?.calendar]);
   const params = {
       ...(kind === "sales" ? range : {}),
       ...(kind === "customers" ? { hasBalance: "true" } : {}),
@@ -99,13 +104,15 @@ export default function Reports() {
               onChange={(e) => {
                 setPreset(e.target.value);
                 if (e.target.value !== "custom")
-                  setRange(rangeFor(e.target.value));
+                  setRange(
+                    rangeFor(e.target.value, settings?.calendar || "gregory"),
+                  );
                 setPage(1);
               }}
             >
               <option value="today">امروز</option>
               <option value="yesterday">دیروز</option>
-              <option value="week">۷ روز گذشته</option>
+              <option value="week">7 روز گذشته</option>
               <option value="month">ماه جاری</option>
               <option value="all">تمام دوره‌ها</option>
               <option value="custom">دورهٔ دلخواه</option>

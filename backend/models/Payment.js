@@ -1,6 +1,8 @@
+import { actorSchema } from "../services/actor.js";
 import mongoose from "mongoose";
 const schema = new mongoose.Schema(
   {
+    ...actorSchema,
     receiptNumber: { type: String, unique: true, sparse: true },
     customerName: String,
     customerPhone: String,
@@ -8,6 +10,7 @@ const schema = new mongoose.Schema(
     currency: String,
     balanceBefore: Number,
     balanceAfter: Number,
+    creditAmount: { type: Number, default: 0, min: 0 },
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",

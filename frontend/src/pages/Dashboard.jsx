@@ -1,3 +1,4 @@
+import { useAuth } from "../services/auth";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -20,20 +21,56 @@ import {
   Loading,
   ErrorMessage,
 } from "../components/UI";
-import { number, date } from "../utils/format";
+import { number } from "../utils/format";
 export default function Dashboard() {
+  const { canManage } = useAuth();
   const { data, loading, error } = useResource("/dashboard/summary"),
-    { money, settings } = useStore();
+    { date, money, settings } = useStore();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - 6 + i);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     return {
       label: d.toLocaleDateString("fa-AF", { weekday: "short" }),
-      amount: data?.trend.find((t) => t._id === key)?.total || 0,
+      amount: data?.trend?.find((t) => t._id === key)?.total || 0,
     };
   });
   const max = Math.max(1, ...days.map((d) => d.amount));
+  if (!canManage)
+    return (
+      <>
+        <PageHeading title="داشبورد" description="فروش، رسید و حساب مشتریان">
+          <Link className="button primary" to="/sales/new">
+            فروش جدید
+          </Link>
+        </PageHeading>
+        <ErrorMessage error={error} />
+        {loading && !data ? (
+          <Loading />
+        ) : (
+          data && (
+            <div className="summary-grid">
+              <SummaryCard
+                label="رول‌های موجود"
+                value={number(data.availableRolls)}
+              />
+              <SummaryCard label="مشتریان" value={number(data.customers)} />
+            </div>
+          )
+        )}
+        <div className="actions">
+          <Link className="button" to="/inventory">
+            موجودی
+          </Link>
+          <Link className="button" to="/customers">
+            مشتریان و رسیدها
+          </Link>
+          <Link className="button" to="/sales">
+            فروشات
+          </Link>
+        </div>
+      </>
+    );
   return (
     <>
       <PageHeading
@@ -41,7 +78,7 @@ export default function Dashboard() {
         description="نمای روشن از موجودی، فروشات و مشتریان دکان شما."
       >
         <Link className="button" to="/inventory/new">
-          <Plus size={17} /> افزودن رول وینیل
+          <Plus size={17} /> افزودن رکورد
         </Link>
         <Link className="button primary" to="/sales/new">
           <Plus size={17} /> فروش جدید
@@ -91,7 +128,7 @@ export default function Dashboard() {
             <SummaryCard
               label="مجموع باقی‌داری مشتریان"
               value={money(data.outstandingDebt)}
-              detail="باقی‌داری پرداخت‌نشدهٔ مشتریان"
+              detail={`طلب مشتریان: ${money(data.customerCredit || 0)}`}
               icon={Wallet}
             />
             <SummaryCard
@@ -124,9 +161,9 @@ export default function Dashboard() {
               <div className="panel-heading">
                 <div>
                   <h2>روند فروشات</h2>
-                  <p>فروش روزانه در ۷ روز گذشته</p>
+                  <p>فروش روزانه در 7 روز گذشته</p>
                 </div>
-                <span className="subtle-tag">۷ روز گذشته</span>
+                <span className="subtle-tag">7 روز گذشته</span>
               </div>
               <div className="chart" aria-label="نمودار فروش روزانه">
                 {days.map((d, i) => (

@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { closePdfBrowser } from "./services/documentService.js";
 import { createApp } from "./app.js";
 import { connectDB } from "./config/db.js";
+import { protectSockets } from "./services/authService.js";
 process.env.TZ ||= "Asia/Kabul";
 try {
   await connectDB(
@@ -22,6 +23,10 @@ try {
     },
   });
   app.set("io", io);
+  protectSockets(io, [
+    process.env.CLIENT_URL || "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ]);
   server.listen(
     Number(process.env.PORT || 5000),
     process.env.HOST || "127.0.0.1",

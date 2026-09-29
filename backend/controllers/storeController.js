@@ -26,6 +26,7 @@ import {
   inventorySummary,
 } from "../services/reportService.js";
 import { transaction } from "../services/transaction.js";
+import { actorFields } from "../services/actor.js";
 const send = (res, data, status = 200) =>
   res.status(status).json({ success: true, data });
 const changed = (req) => req.app.get("io")?.emit("store:changed");
@@ -83,14 +84,25 @@ export const customerGet = async (req, res) =>
   );
 export const customerSave = async (req, res) => {
   const data = customerInput.parse(req.body);
-  const customer = req.params.id
-    ? required(
-        await Customer.findByIdAndUpdate(id.parse(req.params.id), data, {
-          new: true,
-          runValidators: true,
-        }),
-      )
-    : await Customer.create(data);
+  const customer = await transaction(async (session) =>
+    req.params.id
+      ? required(
+          await Customer.findByIdAndUpdate(
+            id.parse(req.params.id),
+            { ...data, ...actorFields() },
+            {
+              new: true,
+              runValidators: true,
+              session,
+            },
+          ),
+        )
+      : (
+          await Customer.create([{ ...data, ...actorFields(true) }], {
+            session,
+          })
+        )[0],
+  );
   changed(req);
   send(res, customer, req.params.id ? 200 : 201);
 };
@@ -126,7 +138,17 @@ export const paymentCreate = async (req, res) => {
   changed(req);
   send(res, payment, 201);
 };
-export const dashboardGet = async (req, res) => send(res, await dashboard());
+export const dashboardGet = async (req, res) => {
+  const data = await dashboard();
+  if (req.user.role === "staff")
+    return send(res, {
+      availableRolls: data.availableRolls,
+      remainingMeters: data.remainingMeters,
+      remainingArea: data.remainingArea,
+      customers: data.customers,
+    });
+  send(res, data);
+};
 export const reportGet = async (req, res) => {
   const { kind } = req.params;
   if (kind === "customers") return send(res, await customerReport(req.query));
@@ -153,9 +175,10 @@ export const settingsSave = async (req, res) => {
     const settings = await Settings.findById("store").session(session);
     if (
       input.currency !== settings.currency &&
-      (await Sale.exists({}).session(session))
+      ((await Sale.exists({}).session(session)) ||
+        (await Payment.exists({}).session(session)))
     )
-      throw new AppError("واحد پول پس از نخستین فروش قابل تغییر نیست.");
+      throw new AppError("واحد پول پس از نخستین فروش یا رسید قابل تغییر نیست.");
     Object.assign(settings, input);
     settings.revision += 1;
     await settings.save({ session });

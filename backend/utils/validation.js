@@ -31,6 +31,43 @@ export const rollInput = z.object({
 export const rollEditInput = rollInput.extend({
   length: positive.or(z.literal(0)),
 });
+export const deliveryRowInput = rollInput
+  .omit({ entryDate: true, supplier: true, length: true })
+  .extend({
+    length: positive.optional(),
+    quantity: z.number().int().min(1).max(1000).optional(),
+    lengths: z.array(positive).min(1).max(1000).optional(),
+  })
+  .superRefine((row, ctx) => {
+    if (row.lengths) {
+      if (row.length !== undefined || row.quantity !== undefined)
+        ctx.addIssue({
+          code: "custom",
+          message: "لیست طول‌ها را بدون تعداد و طول یکسان وارد کنید.",
+        });
+    } else if (row.length === undefined || row.quantity === undefined) {
+      ctx.addIssue({ code: "custom", message: "طول و تعداد را وارد کنید." });
+    }
+  });
+export const deliveryInput = z
+  .object({
+    supplier: text.default(""),
+    reference: text.default(""),
+    entryDate: date,
+    rows: z.array(deliveryRowInput).min(1).max(200),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.rows.reduce(
+        (sum, row) => sum + (row.lengths?.length || row.quantity || 0),
+        0,
+      ) > 1000
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "هر بار حداکثر 1000 رول ثبت کنید.",
+      });
+  });
 export const customerInput = z.object({
   name: text.min(1),
   phone: text.min(1),
@@ -62,6 +99,7 @@ export const paymentInput = z.object({
   reference: text.default(""),
 });
 export const settingsInput = z.object({
+  calendar: z.enum(["gregory", "persian"]).optional(),
   storeName: text.min(1),
   storeAddress: z.string().max(500),
   phone: text,

@@ -4,10 +4,10 @@ import { Check } from "lucide-react";
 import { api, query } from "../services/api";
 import { useStore } from "../services/store";
 import Lookup from "../components/Lookup";
-import { PageHeading, Field, ErrorMessage, BackLink } from "../components/UI";
+import { Modal, Field, ErrorMessage, Loading } from "../components/UI";
 import { number, today } from "../utils/format";
 import Decimal from "decimal.js";
-export default function NewSale() {
+export default function NewSale({ onClose }) {
   const [params] = useSearchParams(),
     navigate = useNavigate(),
     { money, refresh, notice } = useStore();
@@ -92,7 +92,12 @@ export default function NewSale() {
       .times(price || 0)
       .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
       .toNumber(),
-    due = new Decimal(total).minus(paid || 0).toNumber();
+    unpaid = new Decimal(total).minus(paid || 0).toNumber(),
+    creditApplied = Math.min(
+      Math.max(0, unpaid),
+      Math.max(0, -(customer?.balance || 0)),
+    ),
+    due = new Decimal(unpaid).minus(creditApplied).toNumber();
   async function submit(e) {
     e.preventDefault();
     setError("");
@@ -128,13 +133,14 @@ export default function NewSale() {
     }
   }
   return (
-    <>
-      <BackLink to="/sales">برگشت به فروشات</BackLink>
-      <PageHeading
-        eyebrow="ثبت فروش"
-        title="ثبت فروش جدید"
-        description="رول را انتخاب کنید، طول مورد نیاز و نرخ مشتری را وارد کنید و فروش را ثبت نمایید."
-      />
+    <Modal
+      title="فروش جدید"
+      className="sale-modal"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
+    >
+      {!ready && <Loading />}
       {ready && (
         <form onSubmit={submit}>
           <div className="sale-layout">
@@ -302,6 +308,18 @@ export default function NewSale() {
                   <dt>مبلغ پرداخت‌شده</dt>
                   <dd>{money(paid)}</dd>
                 </div>
+                {customer?.balance < 0 && (
+                  <>
+                    <div>
+                      <dt>طلب موجود مشتری</dt>
+                      <dd>{money(-customer.balance)}</dd>
+                    </div>
+                    <div>
+                      <dt>استفاده از طلب مشتری</dt>
+                      <dd>{money(creditApplied)}</dd>
+                    </div>
+                  </>
+                )}
                 <div>
                   <dt>باقی‌داری</dt>
                   <dd className={due > 0 ? "debt" : ""}>{money(due)}</dd>
@@ -323,10 +341,18 @@ export default function NewSale() {
               <p className="small muted">
                 با تکمیل فروش، موجودی و باقی‌داری مشتری همزمان به‌روز می‌شوند.
               </p>
+              <button
+                type="button"
+                className="wide"
+                disabled={busy}
+                onClick={onClose}
+              >
+                انصراف
+              </button>
             </aside>
           </div>
         </form>
       )}
-    </>
+    </Modal>
   );
 }

@@ -1,6 +1,8 @@
+import { actorSchema } from "../services/actor.js";
 import mongoose from "mongoose";
 const schema = new mongoose.Schema(
   {
+    ...actorSchema,
     billNumber: { type: String, required: true, unique: true },
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -28,6 +30,7 @@ const schema = new mongoose.Schema(
     pricePerSquareMeter: Number,
     totalAmount: Number,
     paidAmount: Number,
+    creditApplied: { type: Number, default: 0, min: 0 },
     remainingBalance: { type: Number, min: 0 },
     paymentType: { type: String, enum: ["cash", "credit", "partial"] },
     soldDate: { type: Date, default: Date.now, index: true },

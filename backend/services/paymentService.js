@@ -1,24 +1,24 @@
+import { actorFields } from "./actor.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
 import Payment from "../models/Payment.js";
 import { idempotent } from "./transaction.js";
 import { required, AppError } from "../utils/errors.js";
 import { minor } from "../utils/numbers.js";
-import Settings from "../models/Settings.js";
+import { lockSettings } from "./inventoryService.js";
 import { receiptNumber } from "../utils/billNumber.js";
 export async function createPayment(data, key) {
-  return idempotent(Payment, key, data, async (session, requestHash) => {
+  return idempotent(Payment, key, data, async (session, requestHash, scopedKey) => {
+    const settings = await lockSettings(session);
     const customer = required(
       await Customer.findById(data.customerId).session(session),
       "مشتری یافت نشد.",
     );
     const amountMinor = minor(data.amount);
-    if (amountMinor > customer.balanceMinor)
-      throw new AppError(
-        `مبلغ پرداخت بیشتر از باقی‌داری ${customer.balanceMinor / 100} است.`,
-      );
+    if (!Number.isSafeInteger(customer.balanceMinor - amountMinor))
+      throw new AppError("موجودی حساب مشتری از حد مجاز بیشتر شده است.");
     const changed = await Customer.updateOne(
-      { _id: customer._id, balanceMinor: { $gte: amountMinor } },
+      { _id: customer._id, balanceMinor: customer.balanceMinor },
       { $inc: { balanceMinor: -amountMinor } },
       { session },
     );
@@ -44,21 +44,26 @@ export async function createPayment(data, key) {
       allocations.push({ saleId: sale._id, amount: applied / 100 });
       left -= applied;
     }
-    if (left)
+    const creditAmount = Math.max(
+      0,
+      amountMinor - Math.max(0, customer.balanceMinor),
+    );
+    if (left !== creditAmount)
       throw new AppError("حساب مشتری نیاز به بررسی دارد. پرداخت ثبت نشد.", 409);
     const [payment] = await Payment.create(
       [
         {
           ...data,
           allocations,
-          idempotencyKey: key,
+          creditAmount: creditAmount / 100,
+          idempotencyKey: scopedKey,
+          ...actorFields(true),
           requestHash,
           receiptNumber: await receiptNumber(session),
           customerName: customer.name,
           customerPhone: customer.phone,
           customerAddress: customer.address,
-          currency: (await Settings.findById("store").session(session))
-            .currency,
+          currency: settings.currency,
           balanceBefore: customer.balanceMinor / 100,
           balanceAfter: (customer.balanceMinor - amountMinor) / 100,
         },

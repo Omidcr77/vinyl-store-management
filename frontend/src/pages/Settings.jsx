@@ -46,6 +46,19 @@ export default function Settings() {
               <h2>معلومات دکان</h2>
               <div className="form-grid">
                 <Field
+                  label="تقویم"
+                  hint="نمایش و ورود تاریخ‌ها؛ تاریخ سوابق محفوظ می‌ماند."
+                >
+                  <select
+                    aria-label="تقویم"
+                    name="calendar"
+                    defaultValue={data.calendar || "gregory"}
+                  >
+                    <option value="gregory">میلادی</option>
+                    <option value="persian">هجری شمسی (فارسی)</option>
+                  </select>
+                </Field>
+                <Field
                   label="نام دکان"
                   name="storeName"
                   required
@@ -69,7 +82,7 @@ export default function Settings() {
                   pattern="[A-Z]{3}"
                   required
                   defaultValue={data.currency}
-                  hint="پس از نخستین فروش، برای حفظ سوابق مالی قابل تغییر نیست."
+                  hint="پس از نخستین فروش یا رسید، برای حفظ سوابق مالی قابل تغییر نیست."
                 />
                 <Field
                   label="حد کمبود موجودی (متر)"

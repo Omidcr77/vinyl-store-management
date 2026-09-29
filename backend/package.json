@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch server.js",
+    "dev": "node ../scripts/watch-api.mjs",
     "start": "node server.js",
     "seed": "node seed.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js"

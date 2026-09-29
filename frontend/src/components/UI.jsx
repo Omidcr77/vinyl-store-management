@@ -1,4 +1,6 @@
+import DateInput from "./DateInput";
 import { useEffect, useRef, useState } from "react";
+import DeleteIcon from "./DeleteIcon";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import {
@@ -11,6 +13,7 @@ import {
 } from "lucide-react";
 import { download } from "../services/api";
 import { number, paymentMethod, customerName } from "../utils/format";
+import { useAuth } from "../services/auth";
 export function PageHeading({
   eyebrow = "دکان شما در یک نگاه",
   title,
@@ -85,7 +88,12 @@ export function Field({ label, children, hint, ...props }) {
         {label}
         {props.required && " *"}
       </span>
-      {children || <input aria-label={label} {...props} />}
+      {children ||
+        (props.type === "date" ? (
+          <DateInput aria-label={label} {...props} />
+        ) : (
+          <input aria-label={label} {...props} />
+        ))}
       {hint && <small>{hint}</small>}
     </label>
   );
@@ -105,8 +113,51 @@ export function SummaryCard({ label, value, detail, icon: Icon, accent }) {
 export function Table({
   columns,
   rows = [],
+  view = "table",
   empty = "موردی یافت نشد. فیلتر را تغییر دهید یا نخستین مورد را ثبت کنید.",
 }) {
+  const cell = (column, row) =>
+    column.render
+      ? column.render(row)
+      : column.key === "paymentMethod"
+        ? paymentMethod(row[column.key])
+        : column.key === "customerName"
+          ? customerName(row[column.key])
+          : (row[column.key] ?? "—");
+  if (view !== "table") {
+    const title =
+      columns.find((c) =>
+        ["name", "billNumber", "vinylName"].includes(c.key),
+      ) || columns[0];
+    const actions = columns.filter((c) => ["actions", "print"].includes(c.key));
+    const details = columns.filter((c) => c !== title && !actions.includes(c));
+    return rows.length ? (
+      <div className={`record-cards record-cards-${view}`}>
+        {rows.map((row, i) => (
+          <article className="record-card" key={row._id || i}>
+            <div className="record-card-title">{cell(title, row)}</div>
+            <dl className="record-card-details">
+              {details.map((c) => (
+                <div key={c.key}>
+                  <dt>{c.label}</dt>
+                  <dd>{cell(c, row)}</dd>
+                </div>
+              ))}
+            </dl>
+            {actions.length > 0 && (
+              <div className="record-card-actions">
+                {actions.map((c) => (
+                  <div key={c.key}>{cell(c, row)}</div>
+                ))}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    ) : (
+      <div className="empty">{empty}</div>
+    );
+  }
   return (
     <div className="table-scroll">
       <table>
@@ -146,7 +197,7 @@ export function Pagination({ data, onChange }) {
       <span>
         {data.total
           ? `${number((data.page - 1) * data.limit + 1)}–${number(Math.min(data.page * data.limit, data.total))} از ${number(data.total)}`
-          : "۰ مورد"}
+          : "0 مورد"}
       </span>
       <div>
         <button
@@ -188,6 +239,7 @@ export function SearchInput({
   );
 }
 export function ExportButtons({ kind, params = {} }) {
+  const {canManage}=useAuth();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function run(format) {
@@ -201,6 +253,7 @@ export function ExportButtons({ kind, params = {} }) {
       setBusy(false);
     }
   }
+  if(!canManage)return null;
   return (
     <>
       <div className="export-buttons">
@@ -215,7 +268,7 @@ export function ExportButtons({ kind, params = {} }) {
     </>
   );
 }
-export function Modal({ title, onClose, children }) {
+export function Modal({ title, onClose, children, className }) {
   const ref = useRef();
   useEffect(() => {
     const previous = document.activeElement;
@@ -224,6 +277,7 @@ export function Modal({ title, onClose, children }) {
   }, []);
   return createPortal(
     <dialog
+      className={className}
       ref={ref}
       onCancel={(e) => {
         e.preventDefault();
@@ -264,7 +318,7 @@ export function ConfirmDialog({ title, message, onConfirm, onClose }) {
             }
           }}
         >
-          بایگانی رول
+          <DeleteIcon /> بایگانی رول
         </button>
       </div>
     </Modal>
@@ -282,15 +336,17 @@ export function DateFilter({ from, to, onChange }) {
   return (
     <>
       <Field label="از تاریخ">
-        <input
+        <DateInput
           type="date"
+          aria-label="از تاریخ"
           value={from || ""}
           onChange={(e) => onChange({ from: e.target.value })}
         />
       </Field>
       <Field label="تا تاریخ">
-        <input
+        <DateInput
           type="date"
+          aria-label="تا تاریخ"
           value={to || ""}
           onChange={(e) => onChange({ to: e.target.value })}
         />

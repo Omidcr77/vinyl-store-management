@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DeleteIcon from "./DeleteIcon";
 import { api, query } from "../services/api";
 import { useStore, useResource } from "../services/store";
 import { Table, Field, Pagination, Modal, ErrorMessage, Loading } from "./UI";
@@ -99,7 +100,7 @@ export default function CustomerPrices({ customerId }) {
                       setRemove(r);
                     }}
                   >
-                    حذف نرخ
+                    <DeleteIcon /> حذف نرخ
                   </button>
                 </div>
               ),
@@ -187,7 +188,7 @@ export default function CustomerPrices({ customerId }) {
               انصراف
             </button>
             <button className="danger" disabled={busy} onClick={deletePrice}>
-              تأیید حذف نرخ
+              <DeleteIcon /> تأیید حذف نرخ
             </button>
           </div>
         </Modal>

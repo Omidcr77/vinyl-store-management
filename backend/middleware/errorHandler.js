@@ -33,10 +33,19 @@ export function errorHandler(error, req, res, next) {
       storeName: "نام دکان",
       img: "آدرس تصویر",
       rememberPrice: "ذخیرهٔ نرخ",
+      quantity: "تعداد",
+      lengths: "لیست طول‌ها",
+      rows: "ردیف‌ها",
+      reference: "مرجع",
+      supplier: "تهیه‌کننده",
     };
     message = error.issues
       .map((issue) => {
-        const label = names[issue.path[0]] || "معلومات واردشده";
+        const field = issue.path.at(-1);
+        const label =
+          issue.path[0] === "rows" && typeof issue.path[1] === "number"
+            ? `ردیف ${issue.path[1] + 1}، ${names[field] || "معلومات"}`
+            : names[field] || "معلومات واردشده";
         if (/[\u0600-\u06ff]/.test(issue.message))
           return `${label}: ${issue.message}`;
         const detail =
@@ -56,7 +65,7 @@ export function errorHandler(error, req, res, next) {
     status = 400;
     message =
       error.code === "LIMIT_FILE_SIZE"
-        ? "حجم عکس نباید بیشتر از ۵ مگابایت باشد."
+        ? "حجم عکس نباید بیشتر از 5 مگابایت باشد."
         : "تنها یک عکس را با خانهٔ «image» ارسال کنید.";
   } else if (error.name === "CastError") {
     status = 400;

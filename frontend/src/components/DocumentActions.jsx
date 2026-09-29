@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ErrorMessage } from "./UI";
+import { authFetch } from "../services/api";
 export default function DocumentActions({ path, filename, print = true }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -7,7 +8,7 @@ export default function DocumentActions({ path, filename, print = true }) {
     setBusy(true);
     setError("");
     try {
-      const response = await fetch(`/api${path}/pdf`);
+      const response = await authFetch(`/api${path}/pdf`);
       if (!response.ok)
         throw new Error(
           (await response.json().catch(() => null))?.error?.message ||

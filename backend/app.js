@@ -3,6 +3,13 @@ import cors from "cors";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { uploadsDirectory } from "./config/storage.js";
+import authRoutes, { usersRouter, auditRouter } from "./routes/auth.js";
+import {
+  requireAuth,
+  csrf,
+  passwordReady,
+  staffPrivacy,
+} from "./middleware/auth.js";
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
@@ -10,7 +17,7 @@ export function createApp() {
     process.env.CLIENT_URL || "http://localhost:5173",
     "http://127.0.0.1:5173",
   ];
-  app.use(cors({ origin: origins }));
+  app.use(cors({ origin: origins, credentials: true }));
   app.use((req, res, next) => {
     if (req.get("origin") && !origins.includes(req.get("origin")))
       return res.status(403).json({
@@ -19,21 +26,26 @@ export function createApp() {
       });
     next();
   });
-  app.use(express.json({ limit: "100kb" }));
+  app.use(express.json({ limit: "1mb" }));
+  app.get("/api/health", (req, res) =>
+    res.json({ success: true, data: { status: "ok" } }),
+  );
+  app.use("/api/auth", authRoutes);
+  app.use("/api", requireAuth, csrf, passwordReady, staffPrivacy);
+  app.use("/api/users", usersRouter);
+  app.use("/api/audit", auditRouter);
   app.use(
     "/api/images",
     express.static(uploadsDirectory(), {
       index: false,
       dotfiles: "deny",
-      maxAge: "1y",
-      immutable: true,
+      maxAge: 0,
+      cacheControl: false,
       setHeaders(res) {
         res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("Cache-Control", "no-store");
       },
     }),
-  );
-  app.get("/api/health", (req, res) =>
-    res.json({ success: true, data: { status: "ok" } }),
   );
   app.use("/api", routes);
   app.use((req, res) =>

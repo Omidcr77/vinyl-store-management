@@ -1,7 +1,8 @@
 import { useStore } from "../services/store";
 import { Modal, Table } from "./UI";
-import { date, number, customerName } from "../utils/format";
+import { number, customerName } from "../utils/format";
 import DocumentActions from "./DocumentActions";
+import BillDocument from "./BillDocument";
 export default function PrintDocument({
   title,
   customer,
@@ -12,7 +13,17 @@ export default function PrintDocument({
   pdfPath,
   filename,
 }) {
-  const { settings, money } = useStore();
+  const { date, settings, money } = useStore();
+  if (pdfPath && sales.length === 1)
+    return (
+      <Modal title="پیش‌نمایش بل" onClose={onClose} className="bill-modal">
+        <BillDocument record={sales[0]} settings={settings || {}} />
+        <div className="form-footer no-print">
+          <button onClick={onClose}>بستن</button>
+          <DocumentActions path={pdfPath} filename={filename} />
+        </div>
+      </Modal>
+    );
   return (
     <Modal title={title} onClose={onClose}>
       <div className="print-document">

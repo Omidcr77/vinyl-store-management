@@ -1,4 +1,205 @@
 /* Dari layout. ISO dates, telephone numbers and invoice identifiers retain LTR order. */
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: linear-gradient(135deg, #173c32, #476447); }
+.login-card { width: 100%; max-width: 440px; padding: 32px; border-radius: 16px; background: #fff; box-shadow: 0 15px 65px #102d2540; }
+.login-card h1 { font-size: 25px; margin-bottom: 12px; }
+.login-card p { margin-bottom: 16px; }
+.login-card form { display: grid; gap: 18px; margin: 24px 0; }
+.login-card > small { display: block; line-height: 1.9; color: #657c6d; }
+.login-brand { font-weight: 600; color: #254d3d; margin-bottom: 24px; }
+.account-page .login-card { box-shadow: none; border: 1px solid #d9e2dd; }
+.account-link { font-weight: 600; white-space: nowrap; }
+@media (max-width: 600px) { .login-page { padding: 14px; } .login-card { padding: 22px; } .topbar-right { flex-wrap: wrap; } }
+.record-view-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid #edf0eb;
+}
+.record-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.record-view-controls button {
+  font-size: 12px;
+  min-height: 34px;
+}
+.record-view-controls button[aria-pressed="true"] {
+  color: #fff;
+  background: #254d3d;
+  border-color: #254d3d;
+}
+.record-cards {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+.record-cards-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+}
+.record-card {
+  min-width: 0;
+  border: 1px solid #e1e7df;
+  border-radius: 10px;
+  background: #fff;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.record-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.record-card-title .customer-cell,
+.record-card-title .product-cell {
+  white-space: normal;
+}
+.record-card-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+.record-card-details dt {
+  font-size: 11px;
+  color: #738177;
+  margin-bottom: 4px;
+}
+.record-card-details dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.record-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid #edf0eb;
+  padding-top: 12px;
+  margin-top: auto;
+}
+.record-cards-rows .record-card {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(0, 3fr) auto;
+  align-items: center;
+}
+.record-cards-rows .record-card-details {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+.record-cards-rows .record-card-actions {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .record-cards {
+    padding: 12px;
+  }
+  .record-cards-rows .record-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .record-view-bar {
+    padding: 10px 12px;
+  }
+}
+.calendar-input {
+  position: relative;
+  min-width: 0;
+}
+.calendar-entry {
+  display: flex;
+  gap: 6px;
+}
+.calendar-entry input {
+  min-width: 0;
+  flex: 1;
+}
+.calendar-input > small {
+  display: block;
+  margin-top: 4px;
+  color: #64766e;
+  font-size: 11px;
+}
+.calendar-picker {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
+  width: 280px;
+  max-width: 85vw;
+  background: white;
+  border: 1px solid #d9e2dd;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px #17382725;
+  padding: 12px;
+}
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.calendar-grid button {
+  min-height: 30px;
+  padding: 3px;
+  font-size: 12px;
+}
+.delete-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+.bill-modal {
+  width: calc(100% - 24px);
+  max-width: 850px;
+  background: #edf1ee;
+}
+.bill-document {
+  padding: 26px;
+  background: white;
+  border: 1px solid #dbe3dd;
+  box-shadow: 0 2px 12px #1738270b;
+}
+.bill-modal .form-footer {
+  position: static;
+  background: #edf1ee;
+  padding: 14px 0;
+  z-index: 2;
+}
+@media screen and (max-width: 600px) {
+  .bill-modal {
+    padding: 12px;
+  }
+  .bill-document {
+    padding: 14px 10px;
+  }
+  .bill-modal .form-footer {
+    bottom: -12px;
+  }
+}
+@media print {
+  .bill-document {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+}
+.sale-modal {
+  width: calc(100% - 32px);
+  max-width: 1100px;
+}
+.sale-modal .sale-summary {
+  top: 0;
+}
+.sale-modal .form-panel {
+  padding: 18px;
+}
 html[dir="rtl"] {
   font-family: Tahoma, "Segoe UI", Arial, sans-serif;
 }
@@ -153,19 +354,52 @@ textarea {
   font-family: Vazirmatn, Tahoma, sans-serif;
 }
 .record-photo {
-  width: 44px;
-  height: 44px;
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border-radius: 10px;
   flex-shrink: 0;
 }
 .record-photo.large {
-  width: 180px;
-  height: 180px;
+  width: 320px;
+  max-width: 100%;
+  height: 280px;
   object-fit: contain;
   background: #f3f7f5;
   display: block;
   margin: 12px 0;
+}
+.record-photo.photo-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+}
+.record-cards-grid .product-cell,
+.record-cards-grid .customer-cell {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.record-cards-grid .product-cell .record-photo {
+  width: 100%;
+  height: 220px;
+  object-fit: contain;
+  background: #f3f7f5;
+}
+.record-cards-grid .customer-cell .record-photo {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  background: #f3f7f5;
+}
+.record-cards-rows .record-card-title .record-photo {
+  width: 96px;
+  height: 96px;
+}
+.record-cards-rows .product-cell,
+.record-cards-rows .customer-cell {
+  flex-wrap: wrap;
+  gap: 12px;
 }
 .image-picker {
   padding: 12px;
@@ -184,4 +418,117 @@ textarea {
 }
 .document-actions .error {
   flex-basis: 100%;
+}
+.delivery-modal {
+  width: calc(100% - 32px);
+  max-width: 1100px;
+}
+.delivery-fields {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.simple-delivery {
+  max-width: 820px;
+}
+.delivery-example {
+  background: #f1f6f1;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.delivery-example p {
+  margin: 4px 0 0;
+}
+.simple-delivery .delivery-row {
+  padding: 12px 16px;
+}
+.delivery-group-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 0;
+  padding: 0 0 8px;
+  background: transparent;
+  text-align: start;
+}
+.delivery-group-toggle span {
+  font-size: 12px;
+  color: #657b65;
+}
+.delivery-length-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+  cursor: pointer;
+}
+.delivery-length-switch input {
+  width: 17px;
+  height: 17px;
+  min-height: 0;
+}
+.delivery-extra {
+  margin: 12px 0;
+}
+.delivery-extra summary {
+  cursor: pointer;
+  padding: 8px 0;
+  color: #315b49;
+}
+.delivery-extra .delivery-grid {
+  margin-top: 8px;
+}
+.delivery-group-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.delivery-footer {
+  position: sticky;
+  bottom: -25px;
+  background: white;
+  padding: 14px 0;
+  margin-top: 16px;
+  z-index: 1;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.delivery-footer > span {
+  margin-inline-end: auto;
+  font-size: 12px;
+}
+.delivery-import {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 20px 0;
+}
+.delivery-import input {
+  display: block;
+  max-width: 100%;
+}
+.delivery-row {
+  border: 1px solid #d9e2d0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 650px) {
+  .delivery-grid {
+    grid-template-columns: 1fr;
+  }
+  .delivery-row .panel-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 }

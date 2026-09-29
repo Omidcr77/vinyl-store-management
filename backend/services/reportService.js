@@ -3,6 +3,8 @@ import Sale from "../models/Sale.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
 import Payment from "../models/Payment.js";
+import Settings from "../models/Settings.js";
+import { monthStart } from "../../shared/calendar.js";
 import { filterFor, pagination } from "../utils/query.js";
 const sum = (field) => ({ $sum: `$${field}` });
 export async function salesSummary(filter = {}) {
@@ -141,11 +143,15 @@ export async function customerReport(q) {
   };
 }
 export async function dashboard() {
+  const calendar =
+    (await Settings.findById("store").lean())?.calendar || "gregory";
   const now = new Date(),
     today = new Date(now.getFullYear(), now.getMonth(), now.getDate()),
     tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
-    month = new Date(now.getFullYear(), now.getMonth(), 1),
-    nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    month = new Date(`${monthStart(now, calendar)}T00:00:00+04:30`),
+    nextMonth = new Date(
+      `${monthStart(new Date(month.getTime() + 32 * 86400000), calendar)}T00:00:00+04:30`,
+    );
   const [
     inventory,
     revenue,
@@ -161,7 +167,15 @@ export async function dashboard() {
     salesSummary(),
     salesSummary({ soldDate: { $gte: today, $lt: tomorrow } }),
     salesSummary({ soldDate: { $gte: month, $lt: nextMonth } }),
-    Customer.aggregate([{ $group: { _id: null, total: sum("balanceMinor") } }]),
+    Customer.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $max: ["$balanceMinor", 0] } },
+          credit: { $sum: { $max: [{ $multiply: ["$balanceMinor", -1] }, 0] } },
+        },
+      },
+    ]),
     Customer.countDocuments(),
     Sale.find().sort({ soldDate: -1 }).limit(6),
     VinylRoll.find({ archived: false, status: "low-stock" })
@@ -197,6 +211,7 @@ export async function dashboard() {
     todaySales: todaySales.totalSales,
     monthSales: monthSales.totalSales,
     outstandingDebt: (debt[0]?.total || 0) / 100,
+    customerCredit: (debt[0]?.credit || 0) / 100,
     customers,
     recentSales,
     lowStock,

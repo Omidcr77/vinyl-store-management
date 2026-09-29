@@ -1,3 +1,21 @@
+let csrfToken = "";
+export const setCsrfToken = (token) => {
+  csrfToken = token || "";
+};
+export async function authFetch(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    credentials: "same-origin",
+    headers: {
+      "X-Requested-With": "store-app",
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+      ...options.headers,
+    },
+  });
+  if (response.status === 401 && !url.endsWith("/auth/login"))
+    window.dispatchEvent(new Event("auth:unauthorized"));
+  return response;
+}
 export const query = (params) =>
   new URLSearchParams(
     Object.entries(params).filter(
@@ -7,7 +25,7 @@ export const query = (params) =>
 export async function api(path, options = {}) {
   let response;
   try {
-    response = await fetch("/api" + path, {
+    response = await authFetch("/api" + path, {
       ...options,
       headers: {
         ...(options.body instanceof FormData
@@ -23,15 +41,20 @@ export async function api(path, options = {}) {
             : JSON.stringify(options.body),
     });
   } catch {
-    throw new Error(
+    const error = new Error(
       "ارتباط با سرور دکان برقرار نشد. فعال بودن سرور را بررسی کنید.",
     );
+    error.status = 0;
+    throw error;
   }
   const result = await response.json().catch(() => null);
-  if (!response.ok || !result?.success)
-    throw new Error(
+  if (!response.ok || !result?.success) {
+    const error = new Error(
       result?.error?.message || "سرور نتوانست این درخواست را تکمیل کند.",
     );
+    error.status = response.status;
+    throw error;
+  }
   return result.data;
 }
 export async function allRecords(path, params = {}) {
@@ -46,7 +69,7 @@ export async function allRecords(path, params = {}) {
   return items;
 }
 export async function download(kind, params, format) {
-  const res = await fetch(
+  const res = await authFetch(
     `/api/exports/${kind}?${query({ ...params, format })}`,
   );
   if (!res.ok) throw new Error("دریافت فایل انجام نشد. دوباره کوشش کنید.");

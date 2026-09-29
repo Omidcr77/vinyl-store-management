@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Plus, Printer, SlidersHorizontal } from "lucide-react";
 import { query } from "../services/api";
 import { useResource, useDebounce, useStore } from "../services/store";
@@ -16,13 +16,18 @@ import {
   BackLink,
 } from "../components/UI";
 import SaleTable from "../components/SaleTable";
+import ViewControls, { useRecordView } from "../components/ViewControls";
 import PrintDocument from "../components/PrintDocument";
 import Lookup from "../components/Lookup";
-import { date, number, customerName } from "../utils/format";
-export default function Sales({ detail }) {
-  return detail ? <Invoice /> : <SalesList />;
+import NewSale from "./NewSale";
+import { number, customerName } from "../utils/format";
+export default function Sales({ detail, create = false }) {
+  return detail ? <Invoice /> : <SalesList create={create} />;
 }
-function SalesList() {
+function SalesList({ create }) {
+  const [recordView, setRecordView] = useRecordView("sales");
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState(""),
     [filters, setFilters] = useState({}),
     [page, setPage] = useState(1),
@@ -43,10 +48,18 @@ function SalesList() {
         description="تمام فروشات و معاملات مشتریان در یک‌جا محفوظ است."
       >
         <ExportButtons kind="sales" params={params} />
-        <Link className="button primary" to="/sales/new">
+        <button className="primary" onClick={() => setAdding(true)}>
           <Plus size={17} /> فروش جدید
-        </Link>
+        </button>
       </PageHeading>
+      {(adding || create) && (
+        <NewSale
+          onClose={() => {
+            setAdding(false);
+            if (create) navigate("/sales");
+          }}
+        />
+      )}
       <section className="panel">
         <div className="toolbar">
           <SearchInput
@@ -131,7 +144,14 @@ function SalesList() {
           </div>
         )}
         <ErrorMessage error={error} />
-        {loading && !data ? <Loading /> : <SaleTable rows={data?.items} />}
+        <div className="record-view-bar">
+          <ViewControls value={recordView} onChange={setRecordView} />
+        </div>
+        {loading && !data ? (
+          <Loading />
+        ) : (
+          <SaleTable rows={data?.items} view={recordView} />
+        )}
         <Pagination data={data} onChange={setPage} />
       </section>
     </>
@@ -140,7 +160,7 @@ function SalesList() {
 function Invoice() {
   const { id } = useParams(),
     { data: sale, loading, error } = useResource(`/sales/${id}`),
-    { money, settings } = useStore(),
+    { date, money, settings } = useStore(),
     [print, setPrint] = useState(false);
   return (
     <>
@@ -223,11 +243,20 @@ function Invoice() {
               <span>پرداخت هنگام فروش</span>
               <strong>{money(sale.paidAmount, sale.currency)}</strong>
             </p>
+            {sale.creditApplied > 0 && (
+              <p>
+                <span>استفاده از طلب مشتری</span>
+                <strong>{money(sale.creditApplied, sale.currency)}</strong>
+              </p>
+            )}
             <p>
               <span>پرداخت‌های بعدی</span>
               <strong>
                 {money(
-                  sale.totalAmount - sale.paidAmount - sale.remainingBalance,
+                  sale.totalAmount -
+                    sale.paidAmount -
+                    (sale.creditApplied || 0) -
+                    sale.remainingBalance,
                   sale.currency,
                 )}
               </strong>

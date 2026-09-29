@@ -1,7 +1,9 @@
+import { actorSchema } from "../services/actor.js";
 import mongoose from "mongoose";
 
 const schema = new mongoose.Schema(
   {
+    ...actorSchema,
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Customer",

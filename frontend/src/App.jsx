@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { NavLink, Routes, Route, Link, useLocation } from "react-router-dom";
+import {
+  NavLink,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import {
   LayoutDashboard,
   Layers3,
-  Plus,
   ReceiptText,
   Users,
   ChartNoAxesCombined,
@@ -16,22 +22,26 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import RollForm from "./pages/RollForm";
 import Sales from "./pages/Sales";
-import NewSale from "./pages/NewSale";
 import Customers from "./pages/Customers";
 import CustomerDetail from "./pages/CustomerDetail";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import { AuthProvider, useAuth, roleLabels } from "./services/auth";
+import Login from "./pages/Login";
+import Account from "./pages/Account";
+import UserManagement from "./pages/Users";
+import Audit from "./pages/Audit";
 const nav = [
   ["/", "داشبورد", LayoutDashboard],
   ["/inventory", "موجودی", Layers3],
-  ["/inventory/new", "رول وینیل جدید", Plus],
   ["/sales", "فروشات", ReceiptText],
-  ["/sales/new", "فروش جدید", Plus],
   ["/customers", "مشتریان", Users],
   ["/reports", "گزارش‌ها", ChartNoAxesCombined],
 ];
 function Shell() {
-  const { settings, connected } = useStore(),
+  const { user, canManage, isAdmin, logout } = useAuth();
+  const [logoutError, setLogoutError] = useState("");
+  const { settings, connected, date } = useStore(),
     [menu, setMenu] = useState(false),
     location = useLocation();
   const section =
@@ -63,22 +73,38 @@ function Shell() {
         </button>
         <div className="nav-label">بخش‌های دکان</div>
         <nav>
-          {nav.map(([path, label, Icon]) => (
-            <NavLink key={path} to={path} end onClick={() => setMenu(false)}>
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
+          {nav
+            .filter(([path]) => path !== "/reports" || canManage)
+            .map(([path, label, Icon]) => (
+              <NavLink key={path} to={path} end onClick={() => setMenu(false)}>
+                <Icon size={18} />
+                {label}
+              </NavLink>
+            ))}
         </nav>
         <div className="sidebar-bottom">
-          <NavLink to="/settings" onClick={() => setMenu(false)}>
-            <SettingsIcon size={18} />
-            تنظیمات
-          </NavLink>
+          {isAdmin && (
+            <>
+              <NavLink to="/users" onClick={() => setMenu(false)}>
+                <Users size={18} />
+                مدیریت کاربران
+              </NavLink>
+              <NavLink to="/audit" onClick={() => setMenu(false)}>
+                <ChartNoAxesCombined size={18} />
+                تاریخچهٔ فعالیت‌ها
+              </NavLink>
+            </>
+          )}
+          {isAdmin && (
+            <NavLink to="/settings" onClick={() => setMenu(false)}>
+              <SettingsIcon size={18} />
+              تنظیمات
+            </NavLink>
+          )}
           <div className="store-profile">
             <div className="avatar">ف</div>
             <div>
-              مدیریت دکان
+              {user.name} · {roleLabels[user.role]}
               <small>
                 <i className={connected ? "dot" : "dot offline"} />
                 {connected ? "به‌روزرسانی زنده فعال است" : "در حال اتصال مجدد"}
@@ -103,32 +129,81 @@ function Shell() {
             <strong>{section}</strong>
           </div>
           <div className="topbar-right">
-            <span>
-              {new Date().toLocaleDateString("fa-AF-u-ca-gregory", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
+            <Link to="/account" className="account-link">
+              حساب من
+            </Link>
+            <button
+              className="no-print"
+              onClick={() => logout().catch((e) => setLogoutError(e.message))}
+            >
+              خروج
+            </button>
+            <span>{date(new Date(), { weekday: "short" })}</span>
             <span className="currency-label">
               {settings?.currency || "USD"}
             </span>
           </div>
         </header>
         <main>
+          {logoutError && (
+            <p role="alert" className="error">
+              {logoutError}
+            </p>
+          )}
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/inventory" element={<Inventory />} />
-            <Route path="/inventory/new" element={<RollForm />} />
-            <Route path="/inventory/:id/edit" element={<RollForm />} />
+            <Route
+              path="/inventory/new"
+              element={<Navigate to="/inventory?new=1" replace />}
+            />
+            <Route
+              path="/inventory/:id/edit"
+              element={
+                <Access>
+                  <RollForm />
+                </Access>
+              }
+            />
             <Route path="/sales" element={<Sales />} />
-            <Route path="/sales/new" element={<NewSale />} />
+            <Route path="/sales/new" element={<Sales create />} />
             <Route path="/sales/:id" element={<Sales detail />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route
+              path="/reports"
+              element={
+                <Access>
+                  <Reports />
+                </Access>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <Access admin>
+                  <Settings />
+                </Access>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <Access admin>
+                  <UserManagement />
+                </Access>
+              }
+            />
+            <Route
+              path="/audit"
+              element={
+                <Access admin>
+                  <Audit />
+                </Access>
+              }
+            />
+            <Route path="/account" element={<Account />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
             <Route
               path="*"
               element={
@@ -152,7 +227,22 @@ function Shell() {
 }
 export default function App() {
   return (
-    <StoreProvider>
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
+  );
+}
+function Access({ admin = false, children }) {
+  const { canManage, isAdmin } = useAuth();
+  return (admin ? isAdmin : canManage) ? children : <Navigate to="/" replace />;
+}
+function AuthenticatedApp() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="login-page">در حال بررسی حساب…</div>;
+  if (!user) return <Login />;
+  if (user.mustChangePassword) return <Account forced />;
+  return (
+    <StoreProvider key={user._id}>
       <Shell />
     </StoreProvider>
   );

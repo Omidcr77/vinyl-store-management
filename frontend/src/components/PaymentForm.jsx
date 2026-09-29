@@ -7,6 +7,7 @@ export default function PaymentForm({ customer, onClose }) {
   const { money, refresh, notice } = useStore(),
     key = useRef(crypto.randomUUID()),
     [busy, setBusy] = useState(false),
+    [amount, setAmount] = useState(""),
     [error, setError] = useState("");
   async function submit(e) {
     e.preventDefault();
@@ -21,7 +22,7 @@ export default function PaymentForm({ customer, onClose }) {
         },
       });
       refresh();
-      notice("پرداخت ثبت و باقی‌داری به‌روز شد.");
+      notice("رسید ثبت و حساب مشتری به‌روز شد.");
       onClose();
     } catch (e) {
       setError(e.message);
@@ -29,9 +30,10 @@ export default function PaymentForm({ customer, onClose }) {
     }
   }
   return (
-    <Modal title="ثبت پرداخت مشتری" onClose={onClose}>
+    <Modal title="ثبت رسید مشتری" onClose={onClose}>
       <p>
-        {customer.name} · باقی‌داری <strong>{money(customer.balance)}</strong>
+        {customer.name} · {customer.balance < 0 ? "طلب مشتری" : "باقی‌داری"}{" "}
+        <strong>{money(Math.abs(customer.balance))}</strong>
       </p>
       <form onSubmit={submit}>
         <div className="form-grid">
@@ -40,12 +42,14 @@ export default function PaymentForm({ customer, onClose }) {
             name="amount"
             type="number"
             min="0.01"
-            max={customer.balance}
+            max="100000000"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             step="0.01"
             required
           />
           <Field
-            label="تاریخ پرداخت"
+            label="تاریخ رسید"
             name="date"
             type="date"
             required
@@ -64,16 +68,33 @@ export default function PaymentForm({ customer, onClose }) {
           </Field>
         </div>
         <p className="small muted">
-          این رسید نخست قدیمی‌ترین بل‌های پرداخت‌نشده را تصفیه می‌کند. تاریخچهٔ
-          پرداخت محفوظ می‌ماند.
+          این رسید نخست قدیمی‌ترین بل‌های پرداخت‌نشده را تصفیه می‌کند. مبلغ
+          اضافی به‌عنوان طلب مشتری ذخیره و در خرید بعدی استفاده می‌شود.
         </p>
+        {Number(amount) > 0 && (
+          <p role="status">
+            {customer.balance - Number(amount) < 0
+              ? "طلب مشتری پس از رسید"
+              : "باقی‌داری پس از رسید"}
+            :{" "}
+            <strong>
+              {money(
+                Math.abs(
+                  (Math.round(customer.balance * 100) -
+                    Math.round(Number(amount) * 100)) /
+                    100,
+                ),
+              )}
+            </strong>
+          </p>
+        )}
         <ErrorMessage error={error} />
         <div className="form-footer">
           <button type="button" onClick={onClose}>
             انصراف
           </button>
           <button className="primary" disabled={busy}>
-            {busy ? "در حال ثبت…" : "ثبت پرداخت"}
+            {busy ? "در حال ثبت…" : "ثبت رسید"}
           </button>
         </div>
       </form>

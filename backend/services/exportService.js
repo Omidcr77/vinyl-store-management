@@ -3,6 +3,8 @@ import VinylRoll from "../models/VinylRoll.js";
 import Sale from "../models/Sale.js";
 import Customer from "../models/Customer.js";
 import Payment from "../models/Payment.js";
+import Settings from "../models/Settings.js";
+import { dateText } from "../../shared/calendar.js";
 import { filterFor } from "../utils/query.js";
 import { customerPipeline } from "./reportService.js";
 import { AppError } from "../utils/errors.js";
@@ -38,6 +40,7 @@ const columns = {
     "pricePerSquareMeter",
     "totalAmount",
     "paidAmount",
+    "creditApplied",
     "remainingBalance",
     "paymentType",
     "currency",
@@ -86,6 +89,7 @@ const headers = {
   pricePerSquareMeter: "نرخ فی متر مربع",
   totalAmount: "مبلغ مجموعی",
   paidAmount: "پرداخت هنگام فروش",
+  creditApplied: "استفاده از طلب مشتری",
   remainingBalance: "باقی‌داری فعلی",
   paymentType: "نوع پرداخت",
   currency: "واحد پول",
@@ -94,7 +98,7 @@ const headers = {
   address: "آدرس",
   totalPurchases: "مجموع خریدها",
   totalPaid: "مجموع پرداخت‌ها",
-  balance: "باقی‌داری",
+  balance: "مانده حساب (مثبت: باقی‌داری؛ منفی: طلب مشتری)",
   date: "تاریخ",
   customerId: "شناسهٔ مشتری",
   amount: "مبلغ",
@@ -126,6 +130,12 @@ export async function exportTable(req, res) {
   if (!columns[kind] || !["csv", "xlsx"].includes(format))
     throw new AppError("این نوع فایل پشتیبانی نمی‌شود.");
   const filter = filterFor(kind, req.query);
+  const calendar =
+    (await Settings.findById("store").lean())?.calendar || "gregory";
+  const exportCell = (row, key) =>
+    ["entryDate", "soldDate", "date"].includes(key) && row[key]
+      ? dateText(row[key], calendar)
+      : cell(row, key);
   const cursor =
     kind === "customers"
       ? Customer.aggregate(customerPipeline(filter)).cursor()
@@ -154,7 +164,7 @@ export async function exportTable(req, res) {
       const row = values(item);
       const line =
         keys
-          .map((key) => `"${safe(cell(row, key)).replaceAll('"', '""')}"`)
+          .map((key) => `"${safe(exportCell(row, key)).replaceAll('"', '""')}"`)
           .join(",") + "\r\n";
       if (!res.write(line))
         await new Promise((resolve) => {
@@ -195,7 +205,9 @@ export async function exportTable(req, res) {
           Object.fromEntries(
             keys.map((key) => [
               key,
-              typeof row[key] === "number" ? row[key] : safe(cell(row, key)),
+              typeof row[key] === "number"
+                ? row[key]
+                : safe(exportCell(row, key)),
             ]),
           ),
         )

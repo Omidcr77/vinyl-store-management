@@ -1,6 +1,8 @@
+import { actorSchema } from "../services/actor.js";
 import mongoose from "mongoose";
 const schema = new mongoose.Schema(
   {
+    ...actorSchema,
     name: { type: String, required: true, trim: true, index: true },
     phone: { type: String, required: true, trim: true, index: true },
     address: { type: String, default: "" },
@@ -8,7 +10,7 @@ const schema = new mongoose.Schema(
     balanceMinor: {
       type: Number,
       default: 0,
-      min: 0,
+      min: -Number.MAX_SAFE_INTEGER,
       max: Number.MAX_SAFE_INTEGER,
     },
   },

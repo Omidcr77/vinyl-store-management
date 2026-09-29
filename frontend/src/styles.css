@@ -1531,7 +1531,7 @@ dialog::backdrop {
 }
 @media print {
   @page {
-    size: A4 landscape;
+    size: A4 portrait;
     margin: 12mm;
   }
   body {
@@ -1583,10 +1583,13 @@ dialog::backdrop {
   .print-document table {
     white-space: normal;
     font-size: 9px;
+    width: 100%;
+    table-layout: fixed;
   }
   .print-document th,
   .print-document td {
-    padding: 8px;
+    padding: 6px 4px;
+    overflow-wrap: anywhere;
     border-bottom: 1px solid #bbb;
     color: #111;
   }

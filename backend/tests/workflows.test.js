@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
-import request from "supertest";
+import request, { signInTestAdmin } from "./support/auth.js";
 import ExcelJS from "exceljs";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
@@ -33,6 +33,7 @@ before(async () => {
   db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await connectDB(db.getUri("tests"));
   app = createApp();
+  await signInTestAdmin(app);
 });
 after(async () => {
   await mongoose.disconnect();
@@ -143,7 +144,7 @@ test("complete store workflow and API integrity", async (t) => {
       await request(app)
         .post("/api/payments")
         .set("Idempotency-Key", randomUUID())
-        .send({ ...body, amount: 2001 })
+        .send({ ...body, amount: 100000001 })
         .expect(400);
       await request(app)
         .post("/api/payments")
@@ -384,7 +385,7 @@ test("complete store workflow and API integrity", async (t) => {
     },
   );
   await t.test(
-    "concurrent payments cannot overpay; unsafe input and date filters rejected",
+    "concurrent receipts preserve excess as credit; unsafe input and date filters rejected",
     async () => {
       const body = {
         customerId: customer._id,
@@ -401,11 +402,11 @@ test("complete store workflow and API integrity", async (t) => {
           .set("Idempotency-Key", randomUUID())
           .send(body),
       ]);
-      assert.deepEqual(responses.map((r) => r.status).sort(), [201, 400]);
+      assert.deepEqual(responses.map((r) => r.status).sort(), [201, 201]);
       assert.equal(
         (await request(app).get(`/api/customers/${customer._id}`)).body.data
           .customer.balance,
-        500,
+        -1000,
       );
       await request(app).get("/api/reports/sales?from=2026-02-31").expect(400);
       await request(app)
@@ -475,7 +476,7 @@ test("complete store workflow and API integrity", async (t) => {
       assert.equal(
         (await request(app).get(`/api/customers/${customer._id}`)).body.data
           .customer.balance,
-        0,
+        -1500,
       );
     },
   );

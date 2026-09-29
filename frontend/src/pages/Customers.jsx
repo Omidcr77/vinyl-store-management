@@ -14,7 +14,9 @@ import {
   ExportButtons,
 } from "../components/UI";
 import CustomerForm from "../components/CustomerForm";
+import ViewControls, { useRecordView } from "../components/ViewControls";
 export default function Customers() {
+  const [recordView, setRecordView] = useRecordView("customers");
   const [search, setSearch] = useState(""),
     [hasBalance, setHasBalance] = useState(""),
     [page, setPage] = useState(1),
@@ -55,13 +57,18 @@ export default function Customers() {
           >
             <option value="">همهٔ مشتریان</option>
             <option value="true">مشتریان دارای باقی‌داری</option>
+            <option value="credit">مشتریان دارای طلب</option>
           </select>
         </div>
         <ErrorMessage error={error} />
+        <div className="record-view-bar">
+          <ViewControls value={recordView} onChange={setRecordView} />
+        </div>
         {loading && !data ? (
           <Loading />
         ) : (
           <Table
+            view={recordView}
             rows={data?.items}
             columns={[
               {
@@ -78,10 +85,11 @@ export default function Customers() {
               { key: "address", label: "آدرس" },
               {
                 key: "balance",
-                label: "باقی‌داری",
+                label: "باقی‌داری / طلب",
                 render: (r) => (
                   <strong className={r.balance > 0 ? "debt" : ""}>
-                    {money(r.balance)}
+                    {money(Math.abs(r.balance))}
+                    {r.balance < 0 ? " طلب مشتری" : ""}
                   </strong>
                 ),
               },

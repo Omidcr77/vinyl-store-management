@@ -1,3 +1,4 @@
+import { actorFields } from "./actor.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
@@ -14,7 +15,7 @@ import {
   quantity,
 } from "../utils/numbers.js";
 export async function createSale(data, key) {
-  return idempotent(Sale, key, data, async (session, requestHash) => {
+  return idempotent(Sale, key, data, async (session, requestHash, scopedKey) => {
     const settings = await lockSettings(session);
     const roll = required(
       await VinylRoll.findOne({ _id: data.vinylId, archived: false }).session(
@@ -43,10 +44,14 @@ export async function createSale(data, key) {
       ),
     );
     if (totalAmount <= 0 || totalAmount > 100000000)
-      throw new AppError("مبلغ فروش باید بین ۰٫۰۱ و ۱۰۰٬۰۰۰٬۰۰۰ باشد.");
+      throw new AppError("مبلغ فروش باید بین 0.01 و 100,000,000 باشد.");
     if (data.paidAmount > totalAmount)
       throw new AppError("مبلغ پرداخت‌شده نمی‌تواند بیشتر از مجموع فروش باشد.");
-    const remainingBalance = subtract(totalAmount, data.paidAmount);
+    const unpaid = subtract(totalAmount, data.paidAmount);
+    const creditApplied =
+      Math.min(minor(unpaid), Math.max(0, -(customer?.balanceMinor || 0))) /
+      100;
+    const remainingBalance = subtract(unpaid, creditApplied);
     if (remainingBalance && !customer)
       throw new AppError(
         "برای فروش قرضی یا پرداخت قسمی، مشتری را انتخاب کنید.",
@@ -64,14 +69,12 @@ export async function createSale(data, key) {
     );
     if (!updated.modifiedCount)
       throw new AppError("موجودی تغییر کرده است. دوباره کوشش کنید.", 409);
-    if (customer && remainingBalance) {
-      if (
-        !Number.isSafeInteger(customer.balanceMinor + minor(remainingBalance))
-      )
+    if (customer && unpaid) {
+      if (!Number.isSafeInteger(customer.balanceMinor + minor(unpaid)))
         throw new AppError("باقی‌داری مشتری از حد مجاز بیشتر شده است.");
       await Customer.updateOne(
         { _id: customer._id },
-        { $inc: { balanceMinor: minor(remainingBalance) } },
+        { $inc: { balanceMinor: minor(unpaid) } },
         { session },
       );
     }
@@ -95,14 +98,16 @@ export async function createSale(data, key) {
             data.pricingMethod === "area" ? data.unitPrice : undefined,
           totalAmount,
           remainingBalance,
+          creditApplied,
           paymentType:
             remainingBalance === 0
               ? "cash"
-              : data.paidAmount === 0
+              : data.paidAmount === 0 && creditApplied === 0
                 ? "credit"
                 : "partial",
           currency: settings.currency,
-          idempotencyKey: key,
+          idempotencyKey: scopedKey,
+          ...actorFields(true),
           requestHash,
         },
       ],
@@ -115,7 +120,7 @@ export async function createSale(data, key) {
           type: roll.type,
           pricingMethod: data.pricingMethod,
         },
-        { $set: { unitPrice: data.unitPrice } },
+        { $set: { unitPrice: data.unitPrice, ...actorFields() }, $setOnInsert: {createdBy:actorFields(true).createdBy,createdByName:actorFields(true).createdByName} },
         { upsert: true, new: true, runValidators: true, session },
       );
     }

@@ -10,9 +10,10 @@ import {
   ErrorMessage,
   Loading,
   BackLink,
+  Modal,
 } from "../components/UI";
 import { formValues, today } from "../utils/format";
-export default function RollForm() {
+export default function RollForm({ onClose }) {
   const { id } = useParams(),
     navigate = useNavigate(),
     { settings, refresh, notice } = useStore();
@@ -25,6 +26,7 @@ export default function RollForm() {
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false);
   const roll = id ? data : {};
+  const close = onClose || (() => navigate("/inventory"));
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
@@ -41,29 +43,33 @@ export default function RollForm() {
         body: values,
       });
       refresh();
-      notice(id ? "مشخصات رول به‌روز شد." : "رول وینیل جدید افزوده شد.");
-      navigate("/inventory");
+      notice(id ? "مشخصات رول به‌روز شد." : "رکورد جدید افزوده شد.");
+      close();
     } catch (err) {
       setError(err.message);
       setBusy(false);
     }
   }
-  return (
+  const content = (
     <>
-      <BackLink to="/inventory">برگشت به موجودی</BackLink>
-      <PageHeading
-        eyebrow="موجودی"
-        title={id ? "ویرایش رول وینیل" : "افزودن رول وینیل"}
-        description="مشخصات رول را وارد کنید. شمارهٔ رول خودکار تعیین می‌شود."
-      />
+      {!onClose && (
+        <>
+          <BackLink to="/inventory">برگشت به موجودی</BackLink>
+          <PageHeading
+            eyebrow="موجودی"
+            title={id ? "ویرایش رول وینیل" : "افزودن رکورد"}
+            description="مشخصات رول را وارد کنید. شمارهٔ رول خودکار تعیین می‌شود."
+          />
+        </>
+      )}
       <ErrorMessage error={loadError} />
       {loading && !data ? (
         <Loading />
       ) : (
         data && (
-          <div className="form-layout">
+          <div className={onClose ? "record-popup" : "form-layout"}>
             <form
-              className="panel form-panel"
+              className={onClose ? "" : "panel form-panel"}
               onSubmit={submit}
               key={id || "new"}
             >
@@ -158,7 +164,7 @@ export default function RollForm() {
               </div>
               <ErrorMessage error={error} />
               <div className="form-footer">
-                <button type="button" onClick={() => navigate("/inventory")}>
+                <button type="button" onClick={close}>
                   انصراف
                 </button>
                 <button className="primary" disabled={busy || uploading}>
@@ -166,32 +172,41 @@ export default function RollForm() {
                     ? "در حال ذخیره…"
                     : id
                       ? "ذخیرهٔ تغییرات"
-                      : "افزودن رول وینیل"}
+                      : "افزودن رکورد"}
                 </button>
               </div>
             </form>
-            <aside className="help-card">
-              <Layers3 size={28} />
-              <h3>هر رول با طول باقی‌مانده محفوظ می‌ماند.</h3>
-              <p>
-                تنها طول مورد نیاز مشتری را بفروشید. طول باقی‌مانده و وضعیت
-                موجودی پس از هر فروش خودکار به‌روز می‌شود.
-              </p>
-              <hr />
-              <p>
-                نرخ رول تنها پیشنهاد اولیه است. هنگام فروش، نرخ اختصاصی مشتری را
-                فی متر طولی یا متر مربع تعیین کنید.
-              </p>
-              {id && (
+            {!onClose && (
+              <aside className="help-card">
+                <Layers3 size={28} />
+                <h3>هر رول با طول باقی‌مانده محفوظ می‌ماند.</h3>
                 <p>
-                  پس از فروش، ابعاد رول قابل تغییر نیست. جنس تازه را به‌عنوان
-                  رول جدید ثبت کنید.
+                  تنها طول مورد نیاز مشتری را بفروشید. طول باقی‌مانده و وضعیت
+                  موجودی پس از هر فروش خودکار به‌روز می‌شود.
                 </p>
-              )}
-            </aside>
+                <hr />
+                <p>
+                  نرخ رول تنها پیشنهاد اولیه است. هنگام فروش، نرخ اختصاصی مشتری
+                  را فی متر طولی یا متر مربع تعیین کنید.
+                </p>
+                {id && (
+                  <p>
+                    پس از فروش، ابعاد رول قابل تغییر نیست. جنس تازه را به‌عنوان
+                    رول جدید ثبت کنید.
+                  </p>
+                )}
+              </aside>
+            )}
           </div>
         )
       )}
     </>
+  );
+  return onClose ? (
+    <Modal title="افزودن رکورد" onClose={close}>
+      {content}
+    </Modal>
+  ) : (
+    content
   );
 }

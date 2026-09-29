@@ -7,15 +7,17 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "concurrently -k \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev": "node scripts/dev.mjs",
     "db": "node scripts/local-db.js",
+    "admin:create": "node scripts/create-admin.mjs",
     "seed": "npm run seed -w backend",
     "build": "npm run build -w frontend",
-    "test": "npm run test -w backend",
+    "test": "npm run test -w backend && node --test tests/startup.test.mjs tests/restart.test.mjs tests/calendar.test.mjs",
     "test:ui": "node tests/ui.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
+    "http-proxy-3": "^1.22.0",
     "mongodb-memory-server": "^10.2.0",
     "playwright": "^1.55.0",
     "prettier": "^3.9.9"

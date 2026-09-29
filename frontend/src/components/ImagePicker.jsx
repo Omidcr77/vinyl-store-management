@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DeleteIcon from "./DeleteIcon";
 import { api } from "../services/api";
 import { ErrorMessage } from "./UI";
 export function Photo({ src, name, large = false }) {
@@ -12,7 +13,11 @@ export function Photo({ src, name, large = false }) {
       onError={() => setFailed(src)}
     />
   ) : (
-    <span className="avatar light">{name?.slice(0, 1) || "▧"}</span>
+    <span
+      className={`avatar light record-photo photo-placeholder${large ? " large" : ""}`}
+    >
+      {name?.slice(0, 1) || "▧"}
+    </span>
   );
 }
 export default function ImagePicker({ defaultValue = "", onBusy }) {
@@ -25,7 +30,7 @@ export default function ImagePicker({ defaultValue = "", onBusy }) {
     if (!file) return;
     setError("");
     if (file.size > 5 * 1024 * 1024)
-      return setError("حجم عکس نباید بیشتر از ۵ مگابایت باشد.");
+      return setError("حجم عکس نباید بیشتر از 5 مگابایت باشد.");
     setBusy(true);
     onBusy?.(true);
     try {
@@ -52,13 +57,13 @@ export default function ImagePicker({ defaultValue = "", onBusy }) {
           disabled={busy}
         />
       </label>
-      <small>JPG، PNG یا WebP، حداکثر ۵ مگابایت</small>
+      <small>JPG، PNG یا WebP، حداکثر 5 مگابایت</small>
       {busy && <p role="status">در حال آپلود عکس…</p>}
       {value && (
         <div>
           <Photo src={value} name="عکس انتخاب‌شده" large />
           <button type="button" disabled={busy} onClick={() => setValue("")}>
-            حذف عکس
+            <DeleteIcon /> حذف عکس
           </button>
         </div>
       )}

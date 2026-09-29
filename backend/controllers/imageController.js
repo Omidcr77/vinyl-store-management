@@ -5,6 +5,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { uploadsDirectory } from "../config/storage.js";
 import { AppError } from "../utils/errors.js";
+import { audit } from "../services/actor.js";
 
 export const receiveImage = multer({
   storage: multer.memoryStorage(),
@@ -47,6 +48,7 @@ export async function uploadImage(req, res) {
     filename = `${randomUUID()}.webp`;
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, filename), buffer, { flag: "wx" });
+  await audit("image.upload",filename);
   res
     .status(201)
     .json({ success: true, data: { url: `/api/images/${filename}` } });

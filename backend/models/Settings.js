@@ -6,6 +6,7 @@ const schema = new mongoose.Schema(
     storeAddress: { type: String, default: "" },
     phone: { type: String, default: "" },
     currency: { type: String, default: "USD" },
+    calendar: { type: String, enum: ["gregory", "persian"], default: "gregory" },
     lowStockThreshold: { type: Number, default: 5, min: 0 },
     defaultVinylWidth: { type: Number, default: 4, min: 0.001 },
     invoiceFooter: { type: String, default: "از خرید شما سپاسگزاریم." },

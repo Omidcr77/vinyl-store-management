@@ -1,3 +1,4 @@
+import { useAuth } from "../services/auth";
 import { Photo } from "../components/ImagePicker";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -6,7 +7,6 @@ import {
   SlidersHorizontal,
   Eye,
   Pencil,
-  Trash2,
   ShoppingCart,
 } from "lucide-react";
 import { api, query } from "../services/api";
@@ -25,9 +25,17 @@ import {
   Modal,
   DateFilter,
 } from "../components/UI";
-import { date, number } from "../utils/format";
+import { number } from "../utils/format";
+import RollForm from "./RollForm";
+import DeliveryForm from "../components/DeliveryForm";
+import DeleteIcon from "../components/DeleteIcon";
+import ViewControls, { useRecordView } from "../components/ViewControls";
 export default function Inventory() {
-  const [url] = useSearchParams(),
+  const { canManage } = useAuth();
+  const [recordView, setRecordView] = useRecordView("inventory");
+  const [url, setUrl] = useSearchParams(),
+    [adding, setAdding] = useState(url.get("new") === "1"),
+    [delivery, setDelivery] = useState(false),
     [search, setSearch] = useState(url.get("search") || ""),
     [filters, setFilters] = useState({
       status: url.get("status") || "",
@@ -38,7 +46,7 @@ export default function Inventory() {
     [showFilters, setShowFilters] = useState(false),
     [view, setView] = useState(null),
     [remove, setRemove] = useState(null);
-  const { money, refresh, notice } = useStore(),
+  const { date, money, refresh, notice } = useStore(),
     debounced = useDebounce(search),
     params = { ...filters, search: debounced, page };
   const { data, error, loading } = useResource(`/vinyl?${query(params)}`);
@@ -54,9 +62,14 @@ export default function Inventory() {
         description="موجودی هر رول و هر متر را دقیق مدیریت کنید."
       >
         <ExportButtons kind="vinyl" params={params} />
-        <Link className="button primary" to="/inventory/new">
-          <Plus size={17} /> افزودن رول وینیل
-        </Link>
+        {canManage && (
+          <button onClick={() => setDelivery(true)}>ثبت ورود اجناس</button>
+        )}
+        {canManage && (
+          <button className="primary" onClick={() => setAdding(true)}>
+            <Plus size={17} /> افزودن رکورد
+          </button>
+        )}
       </PageHeading>
       <section className="panel">
         <div className="toolbar">
@@ -137,10 +150,14 @@ export default function Inventory() {
           </div>
         )}
         <ErrorMessage error={error} />
+        <div className="record-view-bar">
+          <ViewControls value={recordView} onChange={setRecordView} />
+        </div>
         {loading && !data ? (
           <Loading />
         ) : (
           <Table
+            view={recordView}
             rows={data?.items}
             columns={[
               {
@@ -205,13 +222,15 @@ export default function Inventory() {
                     >
                       <Eye size={15} />
                     </button>
-                    <Link
-                      title="ویرایش رول"
-                      aria-label={`ویرایش رول ${r.rollNumber}`}
-                      to={`/inventory/${r._id}/edit`}
-                    >
-                      <Pencil size={15} />
-                    </Link>
+                    {canManage && (
+                      <Link
+                        title="ویرایش رول"
+                        aria-label={`ویرایش رول ${r.rollNumber}`}
+                        to={`/inventory/${r._id}/edit`}
+                      >
+                        <Pencil size={15} />
+                      </Link>
+                    )}
                     {r.length > 0 && (
                       <Link
                         title="فروش وینیل"
@@ -221,13 +240,15 @@ export default function Inventory() {
                         <ShoppingCart size={15} />
                       </Link>
                     )}
-                    <button
-                      title="بایگانی رول"
-                      aria-label={`بایگانی رول ${r.rollNumber}`}
-                      onClick={() => setRemove(r)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {canManage && (
+                      <button
+                        title="بایگانی رول"
+                        aria-label={`بایگانی رول ${r.rollNumber}`}
+                        onClick={() => setRemove(r)}
+                      >
+                        <DeleteIcon />
+                      </button>
+                    )}
                   </div>
                 ),
               },
@@ -236,6 +257,21 @@ export default function Inventory() {
         )}
         <Pagination data={data} onChange={setPage} />
       </section>
+      {canManage && delivery && (
+        <DeliveryForm onClose={() => setDelivery(false)} />
+      )}
+      {canManage && adding && (
+        <RollForm
+          onClose={() => {
+            setAdding(false);
+            if (url.has("new")) {
+              const next = new URLSearchParams(url);
+              next.delete("new");
+              setUrl(next, { replace: true });
+            }
+          }}
+        />
+      )}
       {view && (
         <Modal
           title={`رول شمارهٔ ${view.rollNumber} · ${view.vinylName}`}
@@ -251,8 +287,15 @@ export default function Inventory() {
               مساحت: `${number(view.length * view.width)} متر مربع`,
               "تاریخ ورود": date(view.entryDate),
               تهیه‌کننده: view.supplier || "—",
-              "قیمت خرید / متر طولی":
-                view.costPrice == null ? "—" : money(view.costPrice),
+              محموله: view.deliveryNumber || "—",
+              "مرجع محموله": view.deliveryReference || "—",
+              ...(canManage
+                ? {
+                    "قیمت خرید / متر طولی":
+                      view.costPrice == null ? "—" : money(view.costPrice),
+                  }
+                : {}),
+              ثبت‌کننده: view.createdByName || "رکورد قبلی",
               "نرخ پیشنهادی / متر طولی":
                 view.sellingPrice == null ? "—" : money(view.sellingPrice),
               توضیحات: view.details || "—",
@@ -278,7 +321,7 @@ export default function Inventory() {
           </div>
         </Modal>
       )}
-      {remove && (
+      {canManage && remove && (
         <ConfirmDialog
           title={`بایگانی رول شمارهٔ ${remove.rollNumber}?`}
           message="رول از موجودی فعال خارج می‌شود. رول‌های دارای سابقهٔ فروش قابل بایگانی نیستند و سوابق آن‌ها محفوظ می‌ماند."

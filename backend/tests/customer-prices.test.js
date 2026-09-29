@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import mongoose from "mongoose";
-import request from "supertest";
+import request, { signInTestAdmin } from "./support/auth.js";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
@@ -25,6 +25,7 @@ before(async () => {
   db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await connectDB(db.getUri("customer_prices"));
   app = createApp();
+  await signInTestAdmin(app);
   first = (
     await request(app)
       .post("/api/customers")

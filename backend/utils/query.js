@@ -58,6 +58,7 @@ export function filterFor(kind, q) {
     if (q.name) filter.name = regex(q.name);
     if (q.phone) filter.phone = regex(q.phone);
     if (q.hasBalance === "true") filter.balanceMinor = { $gt: 0 };
+    if (q.hasBalance === "credit") filter.balanceMinor = { $lt: 0 };
   }
   const range = dateRange(q.from, q.to);
   if (range)

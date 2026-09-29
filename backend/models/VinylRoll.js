@@ -1,6 +1,8 @@
+import { actorSchema } from "../services/actor.js";
 import mongoose from "mongoose";
 const schema = new mongoose.Schema(
   {
+    ...actorSchema,
     rollNumber: { type: Number, required: true, unique: true },
     vinylName: { type: String, required: true, trim: true, index: true },
     type: { type: String, required: true, trim: true, index: true },
@@ -18,6 +20,13 @@ const schema = new mongoose.Schema(
     costPrice: { type: Number, min: 0 },
     sellingPrice: { type: Number, min: 0 },
     supplier: String,
+    deliveryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Delivery",
+      index: true,
+    },
+    deliveryNumber: String,
+    deliveryReference: String,
     img: { type: String, default: "" },
     archived: { type: Boolean, default: false },
   },

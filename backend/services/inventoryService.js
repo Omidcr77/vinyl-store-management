@@ -1,3 +1,4 @@
+import { actorFields } from "./actor.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Settings from "../models/Settings.js";
 import Sale from "../models/Sale.js";
@@ -31,7 +32,7 @@ export async function saveRoll(data, id) {
         throw new AppError(
           "پس از فروش، ابعاد رول قابل تغییر نیست. برای موجودی تازه، رول جدید ثبت کنید.",
         );
-      Object.assign(roll, data, {
+      Object.assign(roll, data, actorFields(), {
         status: stockStatus(data.length, settings.lowStockThreshold),
       });
       return roll.save({ session });
@@ -40,6 +41,7 @@ export async function saveRoll(data, id) {
       [
         {
           ...data,
+          ...actorFields(true),
           rollNumber: await nextSequence("roll", session),
           status: stockStatus(data.length, settings.lowStockThreshold),
         },
@@ -57,6 +59,7 @@ export async function archiveRoll(id) {
     if (await Sale.exists({ vinylId: id }).session(session))
       throw new AppError("این رول سابقهٔ فروش دارد و باید محفوظ بماند.");
     roll.archived = true;
+    Object.assign(roll, actorFields());
     return roll.save({ session });
   });
 }

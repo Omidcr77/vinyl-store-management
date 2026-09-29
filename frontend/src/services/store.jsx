@@ -8,8 +8,11 @@ import {
 import { io } from "socket.io-client";
 import { api } from "./api";
 import { invoiceFooter } from "../utils/format";
+import { formatDate } from "../../../shared/calendar.js";
+import { useAuth } from "./auth";
 const Context = createContext();
 export function StoreProvider({ children }) {
+  const { clear, reload } = useAuth();
   const [version, setVersion] = useState(0),
     [settings, setSettings] = useState(null),
     [notice, setNotice] = useState(""),
@@ -26,15 +29,22 @@ export function StoreProvider({ children }) {
       .catch(() => {});
   }, [version]);
   useEffect(() => {
-    const socket = io();
+    const socket = io({ withCredentials: true });
+    socket.on("auth:revoked", clear);
+    socket.on("connect_error", (e) => {
+      if (e.message === "UNAUTHORIZED") reload();
+    });
     socket.on("store:changed", refresh);
     socket.on("connect", () => {
       setConnected(true);
       refresh();
     });
-    socket.on("disconnect", () => setConnected(false));
+    socket.on("disconnect", (reason) => {
+      setConnected(false);
+      if (reason === "io server disconnect") reload();
+    });
     return () => socket.disconnect();
-  }, [refresh]);
+  }, [refresh, clear, reload]);
   useEffect(() => {
     if (notice) {
       const timer = setTimeout(() => setNotice(""), 4500);
@@ -42,7 +52,7 @@ export function StoreProvider({ children }) {
     }
   }, [notice]);
   const money = (value, currency = settings?.currency || "USD") =>
-    `${Number(value || 0).toLocaleString("fa-AF", { maximumFractionDigits: 2 })} ${currency === "AFN" ? "افغانی" : currency}`;
+    `${Number(value || 0).toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency === "AFN" ? "افغانی" : currency}`;
   return (
     <Context.Provider
       value={{
@@ -52,6 +62,8 @@ export function StoreProvider({ children }) {
         notice: setNotice,
         connected,
         money,
+        date: (value, options) =>
+          formatDate(value, settings?.calendar || "gregory", options),
       }}
     >
       {children}
@@ -69,16 +81,27 @@ export function useResource(path) {
   const [state, setState] = useState({ data: null, error: "", loading: true });
   useEffect(() => {
     let active = true;
+    let retryTimer;
     setState((s) => ({ ...s, error: "", loading: true }));
-    api(path)
-      .then((data) => {
-        if (active) setState({ data, error: "", loading: false });
-      })
-      .catch((e) => {
-        if (active) setState({ data: null, error: e.message, loading: false });
-      });
+    const load = () =>
+      api(path)
+        .then((data) => {
+          if (active) setState({ data, error: "", loading: false });
+        })
+        .catch((e) => {
+          if (!active) return;
+          const reconnecting = [0, 502, 503, 504].includes(e.status);
+          setState((s) => ({
+            data: reconnecting ? s.data : null,
+            error: e.message,
+            loading: false,
+          }));
+          if (reconnecting) retryTimer = setTimeout(load, 2000);
+        });
+    load();
     return () => {
       active = false;
+      clearTimeout(retryTimer);
     };
   }, [path, version]);
   return state;

@@ -3,13 +3,14 @@ import { SalePrint } from "./RecordPrint";
 import { Link } from "react-router-dom";
 import { Table, Badge } from "./UI";
 import { useStore } from "../services/store";
-import { number, date } from "../utils/format";
-export default function SaleTable({ rows }) {
-  const { money } = useStore();
+import { number } from "../utils/format";
+export default function SaleTable({ rows, view = "table" }) {
+  const { date, money } = useStore();
   const [print, setPrint] = useState(null);
   return (
     <>
       <Table
+        view={view}
         rows={rows}
         columns={[
           {
@@ -58,7 +59,16 @@ export default function SaleTable({ rows }) {
           {
             key: "paidAmount",
             label: "پرداخت هنگام فروش",
-            render: (r) => money(r.paidAmount, r.currency),
+            render: (r) => (
+              <>
+                {money(r.paidAmount, r.currency)}
+                {r.creditApplied > 0 && (
+                  <small className="cell-sub">
+                    از طلب مشتری: {money(r.creditApplied, r.currency)}
+                  </small>
+                )}
+              </>
+            ),
           },
           {
             key: "remainingBalance",

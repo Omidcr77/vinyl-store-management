@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import mongoose from "mongoose";
 import { MongoMemoryReplSet } from "mongodb-memory-server";
-import request from "supertest";
+import request, { signInTestAdmin } from "./support/auth.js";
 import sharp from "sharp";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
@@ -17,6 +17,7 @@ before(async () => {
   db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await connectDB(db.getUri("documents"));
   app = createApp();
+  await signInTestAdmin(app);
 });
 after(async () => {
   await closePdfBrowser();

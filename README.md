@@ -4,17 +4,37 @@ A local, full-stack point-of-sale and inventory application built with React, Vi
 
 Manage partial rolls, sales, customers, outstanding balances, receipts, reports, CSV/Excel exports and printable invoices/statements. All screens use the real API. No browser-only sample records are used.
 
-The interface is in **Dari (`fa-AF`) with right-to-left layout**, including mobile navigation, print views, validation messages and exported column headings. Numbers use Dari digits; dates remain Gregorian to match date inputs and report filters. Product names and customer details remain as entered.
+The interface is in **Dari (`fa-AF`) with right-to-left layout**, including mobile navigation, print views, validation messages and exported column headings. Numbers use English digits (`1234567890`), including prices, quantities, dates and PDFs. In **تنظیمات → تقویم**, choose **هجری شمسی (فارسی)** or **میلادی** and save. Existing installations default to Gregorian. Persian mode includes a date picker and `YYYY/MM/DD` entry with leap-day validation; month names follow Dari. The preference applies to screens, forms, date filters, the current-month reporting period, printed documents, and CSV/Excel dates. API/database dates stay Gregorian ISO dates, so switching calendars never rewrites records or invoice numbers. Product names and customer details remain as entered. Add inventory through the popup form opened by the add-record button on the inventory page.
 
-The default store name is **فرش و قالین فروشی** and the default currency is **USD**. Each invoice and new payment receipt stores its currency. Currency changes remain blocked after the first sale to protect financial history.
+The default store name is **فرش و قالین فروشی** and the default currency is **USD**. Each invoice and new payment receipt stores its currency. Currency changes remain blocked after the first sale or receipt to protect financial history.
 
 ## Photos, printing and PDFs
 
 - Customer and inventory forms include **عکس (اختیاری)**. Upload JPG, PNG or WebP up to 5 MB, replace it or remove it. The server validates the actual image, removes metadata and stores a resized WebP. Thumbnails appear in lists and larger photos in record details.
 - Every sale row has **چاپ بل / PDF**; every receipt in a customer account has **چاپ رسید / PDF**. Open the document, then choose **دانلود PDF** for a file you can send to the customer, or **چاپ / ذخیرهٔ PDF** for the browser print dialog.
-- PDF files are generated locally with embedded Dari fonts and RTL layout. They do not require an external PDF service. Receipts have unique numbers, allocated invoice numbers, and customer/currency/balance snapshots captured at payment time. Older receipts without balance snapshots omit those values.
+- Browser printing and downloaded PDFs use **A4 portrait (210 × 297 mm)**. PDF files are generated locally with embedded Dari fonts and RTL layout. They do not require an external PDF service. Receipts have unique numbers, allocated invoice numbers, and customer/currency/balance snapshots captured at payment time. Older receipts without balance snapshots omit those values.
+- Individual invoices and receipts share one document template across preview, browser printing and PDF download: store details, bill/receipt number and date, customer details, an item/allocation table, payment totals, and blank signature spaces. The invoice clearly separates payment at sale, subsequent payments and current amount due. The compact table fits portrait paper without horizontal scrolling.
+- Customer statements use the same design, with separate purchases and later-payment tables, account totals and signature spaces. **چاپ صورت‌حساب** loads the complete customer history from one consistent database snapshot; **دانلود PDF** creates a portrait A4 document, continuing onto additional pages for long histories. Initial payments and later receipts are shown separately and counted only once in total payments.
 - Uploaded photos live in `.data/uploads` by default. Include this directory with database backups. `UPLOAD_DIR` can point to another persistent directory. Removing a photo from a record does not delete its file because another record may use it.
 - The optional `node scripts/configure-demo-usd.mjs` migration backs up the previous demo settings and financial records under `.data/backups`, then relabels only seeded demo records as USD. It refuses a ledger containing non-seed sales or payments. It is not an exchange-rate conversion and must not be used for real transactions.
+
+## Receiving a truckload
+
+In **موجودی**, choose **ثبت ورود اجناس**. Enter the supplier, delivery reference and arrival date once, then add groups of stock:
+
+1. For identical rolls, enter type, color, width, length and quantity. Quantity `20` creates 20 separately numbered rolls. A separate product name is optional.
+2. Use **همین جنس با رنگ یا اندازهٔ دیگر** to copy a group, then change its color, quantity or dimensions. Use **افزودن جنس دیگر** for a different product. Only one group is expanded at a time; click a previous group's summary to edit it.
+3. For different lengths, check **طول رول‌ها یکسان نیست** and enter `30, 28, 25.5, 32` (or one number per line). Each number creates one roll; quantity is counted automatically.
+4. Optionally enter purchase cost and suggested selling price **per linear meter**, plus row notes. Negotiated customer prices still work independently.
+5. Choose **بررسی محموله**, check all groups and the total roll count, then save. The delivery and its rolls commit in one transaction. An invalid row prevents the whole batch from saving, and retrying the same request does not duplicate stock.
+
+The popup opens with an example and the basic fields for one group. A special product name, suggested selling price, notes, supplier details and Excel import are optional expandable sections. When no special name is entered, the product type is used as its name. The popup accepts up to **200 groups / 1000 physical rolls** per delivery. Each roll retains its own remaining length; partial sales affect only the selected roll. Delivery number, reference and supplier appear in the inventory detail popup. The original single-record popup remains available through **افزودن رکورد**.
+
+### Excel import
+
+Expand **لیست Excel دارید؟** in the delivery popup and download **دانلود نمونهٔ Excel**. Replace the example rows with the supplier's list, then choose **واردکردن فایل Excel**. Imported rows are added to your draft and remain editable; uploading a file never writes inventory.
+
+Use `.xlsx` files up to **2 MB**, with headers on the first row of the first worksheet. Supported columns are `vinylName`, `type`, `color`, `length`, `width`, `quantity`, `lengths`, `costPrice`, `sellingPrice`, `details`. The equivalent Dari headers are `نام`, `نوع`, `رنگ`, `طول`, `عرض`, `تعداد`, `طول‌ها`, `قیمت خرید`, `نرخ پیشنهادی`, `توضیحات`. Type, color and width headers are required; a missing name defaults to the type, and a missing quantity defaults to 1 for equal-length groups. Use plain values rather than formulas, English digits and decimal points. For a `lengths` list, leave both `length` and `quantity` empty. Fill in supplier, reference and date in the popup, not in the spreadsheet.
 
 ## Customer-specific vinyl prices
 
@@ -58,7 +78,15 @@ Copy-Item backend/.env.example backend/.env
 
 On macOS/Linux, use `cp backend/.env.example backend/.env` instead.
 
-**Terminal 1 — start MongoDB:**
+**Everyday startup — one terminal:**
+
+```sh
+npm run dev
+```
+
+This starts the persistent local MongoDB automatically if needed, then the API and frontend. It reuses an already running replica set. Keep this terminal open; Ctrl+C stops its services without deleting records. An unavailable custom `MONGO_URI` produces an error rather than silently switching databases. If port 5000 or 5173 is already occupied, close the previous store server first.
+
+**First-time setup only — start MongoDB in Terminal 1:**
 
 ```sh
 npm run db
@@ -66,14 +94,37 @@ npm run db
 
 This downloads a real MongoDB binary if needed and launches a persistent, local, single-node replica set named `rs0` on port **27017**. Data is stored in `.data/mongo`; it survives restarts. Keep this terminal open. Do not delete `.data` if you need the stored records. If MongoDB already occupies port 27017, use your existing replica set and update `MONGO_URI` instead of running this command.
 
-**Terminal 2 — optional sample data, then both applications:**
+**First-time setup, Terminal 2 — optional sample data, first administrator, then both applications:**
 
 ```sh
 npm run seed
+npm run admin:create
 npm run dev
 ```
 
 Open **http://127.0.0.1:5173** (or http://localhost:5173).
+
+`admin:create` runs once per database and reads `backend/.env`. It creates username `admin` and saves a random temporary password in an ignored `.data/initial-admin-*.txt` file. Open the path printed by the command, log in, change the temporary password, then delete that credential file. Existing stores should skip `seed`; creating the first administrator preserves all existing records. The bootstrap refuses to run if any account already exists.
+
+## Users and permissions
+
+All store pages, APIs, photos, PDF downloads and live updates require login. There is no public registration. In **مدیریت کاربران**, an administrator creates accounts, assigns roles, resets passwords and activates/deactivates accounts. Temporary passwords must be changed at first login. Accounts are deactivated instead of deleted to preserve transaction history.
+
+| Capability | Admin — مدیر سیستم | Manager — مدیر | Staff — کارمند |
+| --- | --- | --- | --- |
+| Customers, sales, receipts, printing | Yes | Yes | Yes |
+| View stock and selling prices | Yes | Yes | Yes |
+| Receive/edit/archive inventory; view purchase costs | Yes | Yes | No |
+| Reports and bulk CSV/Excel exports | Yes | Yes | No |
+| Store settings, users and audit history | Yes | No | No |
+
+Permissions are enforced by the API as well as the interface. The last active administrator cannot be demoted or deactivated. Editing a user's account or changing/resetting their password revokes their sessions and live connections. Every user can change their own password from their account page. Use another administrator to reset a forgotten password.
+
+Passwords use salted scrypt hashes. Sessions expire after 8 hours and use HttpOnly, SameSite cookies; production cookies also require HTTPS. Writes require a session-specific CSRF token. Login attempts are limited per account and IP within each API process. Sessions survive API restarts; the in-memory login limiter resets on restart. Login API clients must send `X-Requested-With: store-app`, retain the returned cookie, and send the response's `csrf` value as `X-CSRF-Token` on subsequent writes.
+
+New records store the responsible user; financial changes and their audit events commit together. The admin audit page shows actions and actors. Older records remain intact and display **رکورد قبلی** where no creator was recorded. Invoice/receipt printouts include the recorded creator. Retry keys are scoped to the logged-in user.
+
+For an explicitly named first administrator, `npm run admin:create -- --file <path>` accepts a local JSON file containing `username`, `name` and `password` (12–128 characters). Keep that file outside Git and remove it after setup. The normal generated-password command requires no file preparation.
 
 - Frontend: port **5173**.
 - Backend: http://127.0.0.1:5000.
@@ -98,6 +149,8 @@ npm run dev
 ```
 
 Stop a process with Ctrl+C. Restart the database and applications using the same commands.
+
+Vite waits for the API health check before opening its development server. `Restarting 'server.js'` is normal when Node's development watcher detects a backend or shared-file change. During a restart, the development proxy waits up to 15 seconds for the API and reconnects Socket.IO. Interrupted reads can retry; forwarded writes are never automatically replayed. Lists retain their existing records and retry temporary connection failures automatically. A longer outage returns a clear 503 error instead of an empty proxy response. Keep `npm run db` running; if you change the API port, set `VITE_API_TARGET` to its matching address. Initial startup still stops with instructions if the API is unavailable for 60 seconds. After updating the Vite configuration or dependencies, restart `npm run dev` once.
 
 ## Environment variables
 
@@ -138,7 +191,7 @@ Wait for the node to become primary, then start the backend. An Atlas replica se
 1. Configure the store name, address, phone, currency, default width and stock threshold in **Settings**.
 2. Add a roll. Roll numbers are assigned automatically and never renumbered or reused.
 3. Add a customer, or choose walk-in for fully paid sales.
-4. In **New sale**, select a roll, enter length, choose linear-meter or square-meter pricing, and enter payment.
+4. In **فروشات**, click **فروش جدید** to open the sale popup. Select a roll, enter length, choose linear-meter or square-meter pricing, and enter payment. Cancel returns to the list; completing the sale opens its invoice. Sale shortcuts from inventory, customer accounts and the dashboard also open the popup with any selected roll/customer filled in.
 5. Review the invoice. Stock and debt have already been updated atomically.
 6. Record subsequent payments from the customer account. Receipts settle the oldest unpaid invoices first.
 7. Use **Reports** for date-filtered sales, inventory cost value and customer debt.
@@ -154,18 +207,21 @@ Wait for the node to become primary, then start the backend. An Atlas replica se
 - Archiving requires confirmation and is permitted only for rolls with no sales. The record and roll number remain stored.
 - Financial records have no update/delete endpoints. Initial sale payment, snapshots and receipts remain in history. Current invoice `remainingBalance` changes when receipts are allocated.
 - A sale's payment type describes the original transaction. A partial invoice may later show zero due; the original partial payment remains visible.
-- Walk-in sales require full payment. Overpayments and negative payments are rejected; this version does not maintain customer credit deposits.
-- Currency is locked after the first sale. All currencies use two decimal places in this application.
+- Walk-in sales require full payment. A sale's immediate payment cannot exceed its total; use **ثبت رسید** in the customer account for additional money. A receipt may exceed the debt or be entered with no debt: it settles oldest invoices first and stores the excess as **طلب مشتری**. For example, a 150 USD receipt against 100 USD debt leaves 50 USD customer credit. Zero and negative receipts are rejected.
+- Positive customer `balance` means debt; negative means customer credit. Screens and printed documents label credit as **طلب مشتری** with a positive displayed amount. Future sales automatically use available credit against the amount unpaid at sale, storing `creditApplied` separately from new cash. Receipt `creditAmount` and before/after snapshots remain historical. Reusing credit does not count as another receipt or payment in customer totals. Dashboard debt excludes customer credit, which is shown separately.
+- Currency is locked after the first sale or receipt. All currencies use two decimal places in this application.
 - Revenue means invoiced sales, not cash receipts. Sales reports show current settlement of invoices within the chosen sale-date range, including later receipts.
 - Duplicate sale/payment requests with the same idempotency key return the original result. Reusing a key with different data is rejected.
 
 ### Search, export and printing
 
+Sales, customers, and inventory have **جدول (پیش‌فرض)**, **شبکه‌ای**, and **ردیفی** view controls. Each list remembers its own choice in this browser. Search, filters, pagination, photos, and record actions work in every view; invoices and printed documents keep their document layout.
+
 Search, filtering, sorting and pagination happen on the server. Searches match names, roll/bill numbers, types, colors, phones and entry dates as appropriate. Inventory filters include type, color, status, date and length; sales filters include customer, date, vinyl, roll and original payment type.
 
 **CSV** and **Excel** export all matching records, independent of the displayed page. Exports are streamed on the backend and protect text cells against spreadsheet formula injection. Customer exports include lifetime purchases, paid amounts and debt.
 
-Invoice and individual receipt previews offer **دانلود PDF** for a direct download and **چاپ / ذخیرهٔ PDF** for browser printing. Customer statements and sales reports use browser printing/Save as PDF and load all matching pages before printing. Very large print documents can use significant browser memory; use a narrower report range or streamed CSV/Excel export for large datasets.
+Invoice, receipt and customer-statement previews offer **دانلود PDF** for a direct download and **چاپ / ذخیرهٔ PDF** for browser printing. Statements include the complete customer history. Sales reports use browser printing/Save as PDF and load all matching pages before printing. Very large print documents can use significant browser memory; use a narrower report range or streamed CSV/Excel export for large datasets.
 
 ## Tests and build
 
@@ -187,7 +243,7 @@ Browser tests launch their own disposable database, API on **5001**, and fronten
 ```text
 backend/
   config/         Database connection and transaction support check
-  models/         VinylRoll, Customer, CustomerPrice, Sale, Payment, Settings, Counter
+  models/         VinylRoll, Delivery, Customer, CustomerPrice, Sale, Payment, Settings, Counter
   controllers/    Request validation and response handling
   routes/         REST endpoints
   services/       Transactions, inventory, sales, receipts, PDFs, reports, exports
@@ -213,21 +269,24 @@ Successful responses: `{ "success": true, "data": ... }`.
 Errors: `{ "success": false, "error": { "message": "..." } }` with a meaningful HTTP status.
 List payloads contain `items`, `total`, `page`, `limit`, and `pages`. Default page size is 15, maximum 100.
 
-| Resource  | Endpoints                                                                        |
-| --------- | -------------------------------------------------------------------------------- |
-| Inventory | `GET/POST /api/vinyl`, `GET/PUT/DELETE /api/vinyl/:id`                           |
-| Customers | `GET/POST /api/customers`, `GET/PUT /api/customers/:id`                          |
-| Sales     | `GET/POST /api/sales`, `GET /api/sales/:id`                                      |
-| Payments  | `GET/POST /api/payments`, `GET /api/payments/:id`                                |
-| PDFs      | `GET /api/sales/:id/pdf`, `GET /api/payments/:id/pdf`                            |
-| Photos    | `POST /api/images` (multipart field `image`), `GET /api/images/:filename`        |
-| Prices    | `GET/PUT /api/customers/:id/prices`, `DELETE /api/customers/:id/prices/:priceId` |
-| Dashboard | `GET /api/dashboard/summary`                                                     |
-| Reports   | `GET /api/reports/sales`, `/inventory`, `/customers`                             |
-| Export    | `GET /api/exports/{vinyl,sales,customers,payments}?format=csv` or `xlsx`         |
-| Settings  | `GET/PUT /api/settings`                                                          |
+| Resource   | Endpoints                                                                                                      |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| Inventory  | `GET/POST /api/vinyl`, `GET/PUT/DELETE /api/vinyl/:id`                                                         |
+| Customers  | `GET/POST /api/customers`, `GET/PUT /api/customers/:id`                                                        |
+| Sales      | `GET/POST /api/sales`, `GET /api/sales/:id`                                                                    |
+| Payments   | `GET/POST /api/payments`, `GET /api/payments/:id`                                                              |
+| PDFs       | `GET /api/sales/:id/pdf`, `GET /api/payments/:id/pdf`                                                          |
+| Photos     | `POST /api/images` (multipart field `image`), `GET /api/images/:filename`                                      |
+| Deliveries | `POST /api/deliveries`, `GET /api/deliveries/template`, `POST /api/deliveries/import` (multipart field `file`) |
+| Prices     | `GET/PUT /api/customers/:id/prices`, `DELETE /api/customers/:id/prices/:priceId`                               |
+| Dashboard  | `GET /api/dashboard/summary`                                                                                   |
+| Reports    | `GET /api/reports/sales`, `/inventory`, `/customers`                                                           |
+| Export     | `GET /api/exports/{vinyl,sales,customers,payments}?format=csv` or `xlsx`                                       |
+| Settings   | `GET/PUT /api/settings`                                                                                        |
 
-`POST /api/sales` and `POST /api/payments` require an `Idempotency-Key` header (8–100 characters). Retain the same key when retrying an uncertain request. Sale inputs: `vinylId`, optional `customerId`, `soldLength`, `pricingMethod` (`linear`/`area`), `unitPrice`, `paidAmount`, optional `soldDate` and `notes`. Payment inputs: `customerId`, positive `amount`, `paymentMethod` (`cash`/`bank`/`other`), optional `date`, `details`, and `reference`.
+`POST /api/sales`, `POST /api/payments` and `POST /api/deliveries` require an `Idempotency-Key` header (8–100 characters). Retain the same key when retrying an uncertain request. Sale inputs: `vinylId`, optional `customerId`, `soldLength`, `pricingMethod` (`linear`/`area`), `unitPrice`, `paidAmount`, optional `soldDate` and `notes`. Payment inputs: `customerId`, positive `amount`, `paymentMethod` (`cash`/`bank`/`other`), optional `date`, `details`, and `reference`.
+
+Delivery inputs: `entryDate`, optional `supplier` and `reference`, and `rows`. Each row accepts inventory name/type/color/width, optional per-meter prices and notes, and either `length` plus integer `quantity` or a `lengths` array. The response includes the delivery number, physical roll count and first/last roll numbers. Excel import returns editable draft rows only; validation at save time applies to the entire delivery.
 
 Customer details include `customer`, paginated `purchases`, paginated `receipts`, and lifetime `summary`; use `purchasePage` and `paymentPage` independently. `GET /api/sales?customerId=...` and `/api/payments?customerId=...` also provide histories.
 
@@ -235,7 +294,7 @@ Socket.io broadcasts `store:changed` after successful writes. The UI then refetc
 
 ## Local operation, backups and limitations
 
-This application is designed for a **trusted local store computer** and binds to loopback by default. It does not implement staff logins or permissions. Add authentication, authorization and TLS before exposing it to other networks.
+This application binds to loopback by default and includes authenticated role-based access. Network deployments require HTTPS with `NODE_ENV=production`, an exact `CLIENT_URL`, and a properly configured reverse proxy. Do not expose MongoDB publicly. The built-in login limiter is process-local; multi-instance deployments need a shared limiter.
 
 Back up the MongoDB database regularly with MongoDB Database Tools (`mongodump` / `mongorestore`) and copy `.data/uploads` (or your configured `UPLOAD_DIR`). Verify that both records and photos restore to a separate environment. Table exports are useful reports, but are not complete backups of financial allocation history. No automatic backup scheduler or general legacy-data migration is included.
 
@@ -243,7 +302,7 @@ The repository excludes local configuration (`.env`), database files, uploaded p
 
 Financial corrections/returns are not implemented; invoices and receipts cannot be deleted from the UI. Establish a reviewed correction process before entering real financial records that may need reversals.
 
-The dependency audit currently reports two moderate findings in ExcelJS's transitive UUID dependency (and the parent package), with no high or critical findings. The advisory concerns UUID v3/v5/v6 buffer handling; ExcelJS uses v4 here. Workbook uploads are not supported. Review dependency updates before network deployment.
+The last dependency audit reported two moderate findings in ExcelJS's transitive UUID dependency (and the parent package), with no high or critical findings. The advisory concerns UUID v3/v5/v6 buffer handling; ExcelJS uses v4 here. Review dependency updates before network deployment.
 
 ## Reference
 
