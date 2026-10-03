@@ -81,6 +81,18 @@ try {
   });
   authCookie = loginResponse.headers.get("set-cookie").split(";")[0];
   csrfToken = (await loginResponse.json()).data.csrf;
+  const initialSettings = await api("/settings");
+  await api(
+    "/settings",
+    {
+      ...initialSettings,
+      storeName: "شرکت بازرگانی قالین پامیر",
+      storeAddress: "کابل، افغانستان",
+      phone: "+93 700 123 456",
+      currency: "AFN",
+    },
+    "PUT",
+  );
   vite = spawn(
     process.execPath,
     [
@@ -136,14 +148,14 @@ try {
   console.log("PASS: authenticated Dari login");
   await page.goto(`${base}/users`);
   await page.getByRole("button", { name: "افزودن کاربر", exact: true }).click();
-  await page.getByLabel("نام کامل", { exact: true }).fill("Browser Staff");
+  await page.getByLabel("نام کامل", { exact: true }).fill("فرید احمدی");
   await page.getByLabel("نام کاربری", { exact: true }).fill("browserstaff");
   await page
     .getByLabel("رمز عبور", { exact: true })
     .fill("Temporary-staff-123");
   await page.getByRole("button", { name: "ذخیرهٔ کاربر", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  await page.getByText("Browser Staff", { exact: true }).waitFor();
+  await page.getByText("فرید احمدی", { exact: true }).waitFor();
   const staffPage = await browser.newPage();
   staffPage.on("pageerror", (e) => errors.push(e.message));
   await staffPage.goto(base);
@@ -172,7 +184,7 @@ try {
       .count(),
     0,
   );
-  const staffRow = page.getByRole("row").filter({ hasText: "Browser Staff" });
+  const staffRow = page.getByRole("row").filter({ hasText: "فرید احمدی" });
   await staffRow.getByRole("button", { name: "ویرایش حساب" }).click();
   await page.getByLabel("وضعیت حساب", { exact: true }).selectOption("false");
   await page.getByRole("button", { name: "ذخیرهٔ کاربر", exact: true }).click();
@@ -216,9 +228,9 @@ try {
   await page.getByRole("heading", { name: "فروشات اخیر" }).waitFor();
   await page.getByRole("link", { name: "مشتریان", exact: true }).click();
   await page.getByRole("button", { name: "افزودن مشتری", exact: true }).click();
-  await page.getByLabel("نام مکمل").fill("Browser Customer");
+  await page.getByLabel("نام مکمل").fill("احمدشاه صافی");
   await page.getByLabel("شمارهٔ تماس", { exact: true }).fill("0701234567");
-  await page.getByLabel("آدرس", { exact: true }).fill("Kabul");
+  await page.getByLabel("آدرس", { exact: true }).fill("کابل، شهرنو");
   const photo = {
     name: "photo.png",
     mimeType: "image/png",
@@ -231,7 +243,7 @@ try {
   await page.getByLabel("عکس (اختیاری)").setInputFiles(photo);
   await page.getByAltText("عکس انتخاب‌شده").waitFor();
   await page.getByRole("button", { name: "ذخیرهٔ مشتری" }).click();
-  await page.getByText("Browser Customer", { exact: true }).waitFor();
+  await page.getByText("احمدشاه صافی", { exact: true }).waitFor();
   console.log("PASS: customer creation");
   const removable = await api("/customers", {
     name: "Delete browser customer",
@@ -270,9 +282,9 @@ try {
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   assert.ok(page.url().endsWith("/inventory"));
   await page.getByRole("button", { name: "افزودن رکورد", exact: true }).click();
-  await page.getByLabel("نام فرش و قالین").fill("Browser Oak");
-  await page.getByLabel("نوع", { exact: false }).fill("Wood");
-  await page.getByLabel("رنگ").fill("Brown");
+  await page.getByLabel("نام فرش و قالین").fill("قالین پامیر");
+  await page.getByLabel("نوع", { exact: false }).fill("قالین");
+  await page.getByLabel("رنگ").fill("قهوه‌ای");
   await page.getByLabel("طول (متر)").fill("30");
   await page.getByLabel("عرض (متر)").fill("4");
   await page.getByLabel("نرخ پیشنهادی فی متر طولی").fill("250");
@@ -284,15 +296,15 @@ try {
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.waitForURL("**/inventory");
-  await page.getByText("Browser Oak", { exact: true }).waitFor();
+  await page.getByText("قالین پامیر", { exact: true }).waitFor();
   let roll = (await api("/vinyl")).items[0];
   const customer = (await api("/customers")).items[0];
   assert.equal(roll.length, 30);
   assert.match(roll.img, /^\/api\/images\//);
   assert.match(customer.img, /^\/api\/images\//);
-  await page.getByAltText("Browser Oak", { exact: true }).waitFor();
-  assert.equal((await api("/settings")).currency, "USD");
-  assert.equal((await api("/settings")).storeName, "فرش و قالین فروشی");
+  await page.getByAltText("قالین پامیر", { exact: true }).waitFor();
+  assert.equal((await api("/settings")).currency, "AFN");
+  assert.equal((await api("/settings")).storeName, "شرکت بازرگانی قالین پامیر");
   console.log("PASS: inventory creation");
   await page.goto(`${base}/sales`);
   await page.getByRole("button", { name: "فروش جدید", exact: true }).click();
@@ -400,7 +412,7 @@ try {
   });
   await page.getByRole("button", { name: "بستن پنجره", exact: true }).click();
   await page.getByRole("button", { name: "ویرایش مشتری" }).click();
-  await page.getByLabel("آدرس", { exact: true }).fill("Kabul, District 4");
+  await page.getByLabel("آدرس", { exact: true }).fill("کابل، ناحیهٔ چهارم");
   await page.getByRole("button", { name: "ذخیرهٔ مشتری" }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   assert.equal(
@@ -500,7 +512,7 @@ try {
     .getByRole("button", { name: "باقی‌داری مشتریان", exact: true })
     .click();
   await page
-    .getByRole("link", { name: "Browser Customer", exact: true })
+    .getByRole("link", { name: "احمدشاه صافی", exact: true })
     .waitFor();
   await page.getByRole("link", { name: "تنظیمات", exact: true }).click();
   await page.getByLabel("حد کمبود موجودی").fill("2");
@@ -515,7 +527,7 @@ try {
   await page
     .getByRole("dialog")
     .getByLabel("نوع فرش و قالین", { exact: true })
-    .fill("Wood");
+    .fill("قالین");
   await page
     .getByRole("dialog")
     .getByLabel("نرخ مشتری", { exact: true })
@@ -535,12 +547,12 @@ try {
   });
   await api(
     `/customers/${secondCustomer._id}/prices`,
-    { type: "Wood", pricingMethod: "linear", unitPrice: 220 },
+    { type: "قالین", pricingMethod: "linear", unitPrice: 220 },
     "PUT",
   );
   await api(
     `/customers/${secondCustomer._id}/prices`,
-    { type: "Wood", pricingMethod: "area", unitPrice: 70 },
+    { type: "قالین", pricingMethod: "area", unitPrice: 70 },
     "PUT",
   );
   await page.goto(
@@ -637,10 +649,10 @@ try {
     .click();
   await deliveryDialog
     .getByLabel("تهیه‌کنندهٔ محموله", { exact: true })
-    .fill("Truck supplier");
+    .fill("شرکت تجارتی پامیر");
   await deliveryDialog
     .getByLabel("شمارهٔ مرجع محموله", { exact: true })
-    .fill("TRUCK-UI");
+    .fill("HRT-1405-01");
   const deliveryRows = deliveryDialog.locator(".delivery-row");
   await deliveryRows
     .nth(0)
@@ -649,9 +661,9 @@ try {
   await deliveryRows
     .nth(0)
     .getByLabel("نام جنس", { exact: true })
-    .fill("Truck Oak");
-  await deliveryRows.nth(0).getByLabel("نوع", { exact: true }).fill("Wood");
-  await deliveryRows.nth(0).getByLabel("رنگ", { exact: true }).fill("Brown");
+    .fill("فرش هرات");
+  await deliveryRows.nth(0).getByLabel("نوع", { exact: true }).fill("قالین");
+  await deliveryRows.nth(0).getByLabel("رنگ", { exact: true }).fill("قهوه‌ای");
   await deliveryRows
     .nth(0)
     .getByLabel("طول هر رول (متر)", { exact: true })
@@ -665,7 +677,7 @@ try {
     .getAttribute("src");
   await deliveryRows
     .nth(0)
-    .getByLabel("قیمت خرید فی متر (USD)", { exact: true })
+    .getByLabel("قیمت خرید فی متر (AFN)", { exact: true })
     .fill("12.50");
   await deliveryRows
     .nth(0)
@@ -674,7 +686,7 @@ try {
       exact: true,
     })
     .click();
-  await deliveryRows.nth(1).getByLabel("رنگ", { exact: true }).fill("Blue");
+  await deliveryRows.nth(1).getByLabel("رنگ", { exact: true }).fill("لاجوردی");
   assert.equal(
     await deliveryRows.nth(1).locator(".image-picker img").getAttribute("src"),
     brownPhoto,
@@ -724,7 +736,7 @@ try {
     "width",
     "quantity",
   ]);
-  importSheet.addRow(["Truck Carpet", "Wool", "Red", 20, 3, 2]);
+  importSheet.addRow(["فرش هرات", "پشمی", "عنابی", 20, 3, 2]);
   await deliveryDialog.getByText("لیست Excel دارید؟", { exact: true }).click();
   await deliveryDialog
     .getByLabel("واردکردن فایل Excel", { exact: true })
@@ -744,9 +756,9 @@ try {
       .nth(3)
       .getByLabel("نام جنس", { exact: true })
       .inputValue(),
-    "Truck Carpet",
+    "فرش هرات",
   );
-  assert.equal((await api("/vinyl?search=Truck")).total, 0);
+  assert.equal((await api("/vinyl?search=فرش%20هرات")).total, 0);
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal(
     await page.evaluate(
@@ -774,26 +786,26 @@ try {
     .getByRole("button", { name: "ثبت 35 رکورد", exact: true })
     .click();
   await deliveryDialog.waitFor({ state: "hidden" });
-  const truckRolls = await api("/vinyl?search=Truck&limit=100");
+  const truckRolls = await api("/vinyl?search=فرش%20هرات&limit=100");
   assert.equal(truckRolls.total, 35);
   assert.ok(
     truckRolls.items
-      .filter((r) => r.color === "Brown")
+      .filter((r) => r.color === "قهوه‌ای")
       .every((r) => r.img === brownPhoto),
   );
   assert.ok(
     truckRolls.items
-      .filter((r) => r.color === "Blue")
+      .filter((r) => r.color === "لاجوردی")
       .every((r) => r.img === bluePhoto),
   );
   assert.ok(
-    truckRolls.items.filter((r) => r.color === "Red").every((r) => !r.img),
+    truckRolls.items.filter((r) => r.color === "عنابی").every((r) => !r.img),
   );
   assert.equal(new Set(truckRolls.items.map((r) => r.rollNumber)).size, 35);
   assert.ok(
     truckRolls.items.every(
       (r) =>
-        r.deliveryReference === "TRUCK-UI" && r.supplier === "Truck supplier",
+        r.deliveryReference === "HRT-1405-01" && r.supplier === "شرکت تجارتی پامیر",
     ),
   );
   console.log(
@@ -886,14 +898,14 @@ try {
     "PASS: calendar settings persist, Persian date entry rejects invalid days, stores ISO and prints correctly",
   );
   const multiCustomer = await api("/customers", {
-    name: "Multi Bill Customer",
+    name: "محمدرضا هوتک",
     phone: "0705551234",
   });
   const multiRolls = [];
   for (const [name, length, width, color] of [
-    ["Basket Red", 30, 4, "Red"],
-    ["Basket Blue", 12, 3, "Blue"],
-    ["Basket Green", 6, 2, "Green"],
+    ["قالین هرات-نمایشی", 30, 4, "عنابی"],
+    ["فرش بلخ-نمایشی", 12, 3, "لاجوردی"],
+    ["موکت کابل-نمایشی", 6, 2, "سبز"],
   ])
     multiRolls.push(
       await api("/vinyl", {
@@ -913,8 +925,8 @@ try {
   await item1.getByLabel("طول فروخته‌شده (متر)").fill("5");
   await item1.getByLabel("نرخ مشتری فی متر طولی").fill("20");
   for (const [index, name] of [
-    [2, "Basket Blue"],
-    [3, "Basket Green"],
+    [2, "فرش بلخ-نمایشی"],
+    [3, "موکت کابل-نمایشی"],
   ]) {
     await page
       .getByRole("button", { name: "افزودن جنس دیگر", exact: true })
@@ -931,16 +943,16 @@ try {
       const url = new URL(response.url());
       return (
         url.pathname === "/api/vinyl" &&
-        url.searchParams.get("search") === "Basket" &&
+        url.searchParams.get("search") === "نمایشی" &&
         response.ok()
       );
     });
-    await stockSearch.fill("Basket");
+    await stockSearch.fill("نمایشی");
     await stockLoaded;
     await item.getByRole("button", { name: new RegExp(name) }).waitFor();
     for (const selectedName of index === 2
-      ? ["Basket Red"]
-      : ["Basket Red", "Basket Blue"])
+      ? ["قالین هرات-نمایشی"]
+      : ["قالین هرات-نمایشی", "فرش بلخ-نمایشی"])
       assert.equal(
         await item
           .getByRole("button", { name: new RegExp(selectedName) })
@@ -1039,20 +1051,20 @@ try {
     .click();
   await page
     .getByLabel("نام شرکت / تهیه‌کننده", { exact: true })
-    .fill("UI Supplier Company");
+    .fill("شرکت بازرگانی پامیر");
   await page.getByLabel("شمارهٔ تماس", { exact: true }).fill("0701122334");
   await page
     .getByRole("button", { name: "ذخیرهٔ تهیه‌کننده", exact: true })
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
-  const uiSupplier = (await api("/suppliers?search=UI%20Supplier")).items[0];
+  const uiSupplier = (await api("/suppliers?search=پامیر")).items[0];
   await page.goto(`${base}/inventory/new`);
   await page.getByRole("dialog").waitFor();
   await page
     .getByLabel("نام فرش و قالین", { exact: true })
-    .fill("UI Purchased Roll");
-  await page.getByLabel("نوع", { exact: true }).fill("Imported");
-  await page.getByLabel("رنگ", { exact: true }).fill("Blue");
+    .fill("قالین وارداتی پامیر");
+  await page.getByLabel("نوع", { exact: true }).fill("وارداتی");
+  await page.getByLabel("رنگ", { exact: true }).fill("لاجوردی");
   await page.getByLabel("طول (متر)", { exact: true }).fill("30");
   await page.getByLabel(/قیمت خرید فی متر طولی/).fill("100");
   await page.getByLabel(/هزینهٔ حمل و ورود این رول/).fill("300");
@@ -1062,8 +1074,8 @@ try {
   await page
     .getByRole("dialog")
     .getByRole("textbox", { name: "جستجو", exact: true })
-    .fill("UI Supplier");
-  await page.getByRole("button", { name: /UI Supplier Company/ }).click();
+    .fill("پامیر");
+  await page.getByRole("button", { name: /شرکت بازرگانی پامیر/ }).click();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "افزودن رکورد", exact: true })
@@ -1073,7 +1085,7 @@ try {
     (await api(`/suppliers/${uiSupplier._id}`)).supplier.balance,
     2000,
   );
-  const purchasedRoll = (await api("/vinyl?search=UI%20Purchased%20Roll"))
+  const purchasedRoll = (await api("/vinyl?search=قالین%20وارداتی%20پامیر"))
     .items[0];
   assert.equal(purchasedRoll.landedCostPerMeter, 110);
   await page.goto(`${base}/suppliers/${uiSupplier._id}`);
@@ -1146,14 +1158,14 @@ try {
   const bulkRollA = await api("/vinyl", {
     vinylName: "Bulk UI roll A",
     type: "Carpet",
-    color: "Red",
+    color: "عنابی",
     length: 20,
     width: 4,
   });
   const bulkRollB = await api("/vinyl", {
     vinylName: "Bulk UI roll B",
     type: "Carpet",
-    color: "Blue",
+    color: "لاجوردی",
     length: 20,
     width: 4,
   });
