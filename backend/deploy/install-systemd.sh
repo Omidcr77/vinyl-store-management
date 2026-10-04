@@ -7,20 +7,17 @@ if [ "$(id -un)" != omid ]; then
 fi
 DEPLOY_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 STORE_ROOT=/home/omid/projects/vinyl-store-management
-MONGO_SOURCE=/home/omid/.cache/mongodb-binaries/mongod-x64-kali-7.0.24
 UNIT_DIR=/home/omid/.config/systemd/user
-test -x "$MONGO_SOURCE"
+test -x /usr/sbin/mariadbd
 test -x /usr/bin/node
-test -d "$STORE_ROOT/.data/mongo"
+test -d "$STORE_ROOT/.data/mysql/mysql"
 test -f "$STORE_ROOT/backend/.env"
 test -f "$STORE_ROOT/node_modules/vite/bin/vite.js"
-install -d -m 0755 /home/omid/.local/lib/vinyl-store "$UNIT_DIR"
-# Decouple the running database from the disposable download cache.
-install -m 0755 "$MONGO_SOURCE" /home/omid/.local/lib/vinyl-store/mongod
-for unit in vinyl-mongodb.service vinyl-api.service vinyl-web.service vinyl-store.target; do
+install -d -m 0755 "$UNIT_DIR"
+for unit in vinyl-mysql.service vinyl-api.service vinyl-web.service vinyl-store.target; do
   install -m 0644 "$DEPLOY_DIR/systemd/$unit" "$UNIT_DIR/$unit"
 done
-systemd-analyze --user verify "$UNIT_DIR/vinyl-mongodb.service" "$UNIT_DIR/vinyl-api.service" "$UNIT_DIR/vinyl-web.service" "$UNIT_DIR/vinyl-store.target"
+systemd-analyze --user verify "$UNIT_DIR/vinyl-mysql.service" "$UNIT_DIR/vinyl-api.service" "$UNIT_DIR/vinyl-web.service" "$UNIT_DIR/vinyl-store.target"
 systemctl --user daemon-reload
 systemctl --user enable vinyl-store.target
 loginctl --no-ask-password enable-linger omid

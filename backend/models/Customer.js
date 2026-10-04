@@ -1,6 +1,6 @@
 import { actorSchema } from "../services/actor.js";
-import mongoose from "mongoose";
-const schema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const schema = new database.Schema(
   {
     ...actorSchema,
     archived: { type: Boolean, default: false, index: true },
@@ -24,4 +24,4 @@ const schema = new mongoose.Schema(
 schema.virtual("balance").get(function () {
   return this.balanceMinor / 100;
 });
-export default mongoose.model("Customer", schema);
+export default database.model("Customer", schema);

@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 // A shared transaction lock protects bootstrap and concurrent last-admin edits.
-export default mongoose.model(
+export default database.model(
   "AuthGuard",
-  new mongoose.Schema({ _id: String, revision: { type: Number, default: 0 } }),
+  new database.Schema({ _id: String, revision: { type: Number, default: 0 } }),
 );

@@ -1,8 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import database from "../db/mysql.js";
+import { TestDatabase } from "./support/database.js";
 import request, { signInTestAdmin } from "./support/auth.js";
 import ExcelJS from "exceljs";
 import { connectDB } from "../config/db.js";
@@ -30,13 +30,13 @@ const saleBody = (length, extra = {}) => ({
 const postSale = (body, key = randomUUID()) =>
   request(app).post("/api/sales").set("Idempotency-Key", key).send(body);
 before(async () => {
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("tests"));
   app = createApp();
   await signInTestAdmin(app);
 });
 after(async () => {
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
 });
 test("complete store workflow and API integrity", async (t) => {

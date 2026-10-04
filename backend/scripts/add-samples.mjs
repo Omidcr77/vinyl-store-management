@@ -1,5 +1,5 @@
 import "dotenv/config";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { connectDB } from "../config/db.js";
 import Customer from "../models/Customer.js";
 import User from "../models/User.js";
@@ -19,10 +19,7 @@ import {
 const batch = "samples-20260929-v1";
 process.env.TZ ||= "Asia/Kabul";
 try {
-  await connectDB(
-    process.env.MONGO_URI ||
-      "mongodb://127.0.0.1:27017/vinyl_store?replicaSet=rs0",
-  );
+  await connectDB(process.env.MYSQL_URL);
   const admin = await User.findOne({ role: "admin", active: true });
   if (!admin)
     throw new Error("An active administrator is required to add samples.");
@@ -222,5 +219,5 @@ try {
   console.error(error.message);
   process.exitCode = 1;
 } finally {
-  await mongoose.disconnect();
+  await database.disconnect();
 }

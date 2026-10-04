@@ -1,6 +1,6 @@
 # فرش و قالین فروشی — Flooring Store Management
 
-A local, full-stack point-of-sale and inventory application built with React, Vite, Tailwind CSS, Lucide, Express, MongoDB/Mongoose and Socket.io.
+A local, full-stack point-of-sale and inventory application built with React, Vite, Tailwind CSS, Lucide, Express, MySQL/InnoDB via mysql2 and Socket.io.
 
 Manage partial rolls, sales, customers, outstanding balances, receipts, reports, CSV/Excel exports and printable invoices/statements. All screens use the real API. No browser-only sample records are used.
 
@@ -67,11 +67,9 @@ Rate API: `GET/PUT /api/customers/:id/prices`, `DELETE /api/customers/:id/prices
 ## Requirements
 
 - Node.js **22.12 or newer** (tested with Node 24).
-- MongoDB **7 or newer**, configured as a replica set. A single-node local replica set is enough.
-- Internet access for initial npm installation and, if using the included local database launcher, the first MongoDB binary download.
-- Playwright Chromium for PDF generation and browser tests. Install it with `npx playwright install chromium`; Linux hosts may also need `npx playwright install --with-deps chromium`.
-
-No Docker or extra infrastructure is needed.
+- MySQL **8+** or MariaDB **11.8+**, with InnoDB. This machine uses MariaDB 11.8, a MySQL-compatible server, on localhost port **3306**. Oracle MySQL has not been separately exercised here.
+- For the included Linux user-owned server, install `mariadbd`, `mariadb-install-db` and the `mariadb` client (Debian/Kali: `sudo apt install mariadb-server mariadb-client`). No Docker is needed.
+- Playwright Chromium for PDF generation and browser tests: `npx playwright install chromium`; Linux may require `npx playwright install --with-deps chromium`.
 
 ## Quick start
 
@@ -80,57 +78,44 @@ From the project root:
 ```sh
 npm install
 npx playwright install chromium
+cp backend/.env.example backend/.env
+npm run db:setup
 ```
 
-The root uses npm workspaces and installs both applications. You can also run `npm install` inside `backend` and `frontend` individually; the root installation is required for the bundled database launcher and tests.
+`db:setup` initializes a **user-owned** local MariaDB directory at `.data/mysql`, creates separate app and test users, and saves random database passwords privately in `backend/.env`. The app user can access only `vinyl_store`; the test user can create/drop only `vinyl_test_*` databases. This command does not seed or reset records. Use it for the bundled local MariaDB only; for an existing MySQL server configure `MYSQL_URL` yourself using the instructions below.
 
-Create the backend configuration:
-
-```powershell
-Copy-Item backend/.env.example backend/.env
-```
-
-On macOS/Linux, use `cp backend/.env.example backend/.env` instead.
-
-**Everyday startup — one terminal:**
-
-```sh
-npm run dev
-```
-
-This starts the persistent local MongoDB automatically if needed, then the API and frontend. It reuses an already running replica set. Keep this terminal open; Ctrl+C stops its services without deleting records. An unavailable custom `MONGO_URI` produces an error rather than silently switching databases. If port 5000 or 5173 is already occupied, close the previous store server first.
-
-**First-time setup only — start MongoDB in Terminal 1:**
+Start the database in Terminal 1 and keep it open:
 
 ```sh
 npm run db
 ```
 
-This downloads a real MongoDB binary if needed and launches a persistent, local, single-node replica set named `rs0` on port **27017**. Data is stored in `.data/mongo`; it survives restarts. Keep this terminal open. Do not delete `.data` if you need the stored records. If MongoDB already occupies port 27017, use your existing replica set and update `MONGO_URI` instead of running this command.
-
-**First-time setup, Terminal 2 — optional sample data, first administrator, then both applications:**
+In Terminal 2, create the first administrator and start the app:
 
 ```sh
-npm run seed
 npm run admin:create
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173** (or http://localhost:5173).
+Open **http://127.0.0.1:5173**. `admin:create` refuses if an account already exists, and saves a random temporary password in an ignored `.data/initial-admin-*.txt` file. Read that local file, sign in, then delete it. Neither the application nor the repository contains a shared admin password.
 
-`admin:create` runs once per database and reads `backend/.env`. It creates username `admin` and saves a random temporary password in an ignored `.data/initial-admin-*.txt` file. Open the path printed by the command, log in directly, then delete that credential file. Existing stores should skip `seed`; creating the first administrator preserves all existing records. The bootstrap refuses to run if any account already exists.
+`npm run dev` checks the configured MySQL connection and starts the API/frontend. It never switches to a fallback database. Stop it with Ctrl+C; the separate database remains running. `.data/mysql` and `.data/uploads` survive restarts. Do not delete `.data` if you need records or photos. For startup at boot, use [the systemd instructions](backend/deploy/README.md); do not run manual copies alongside those services.
+
+For an empty demo database, `npm run seed` creates Afghan/Dari customer, company, product and supplier names and uses **AFN**. Create the admin first, or set `ADMIN_PASSWORD` privately before seeding to create username `admin` in the same transaction. Existing admin passwords are never changed by seeding. The seed refuses a ledger with existing inventory/customers/sales/payments and rolls back all sample changes on failure. Existing stores should skip it; migration preserves their current currency and amounts.
+
+For local administrator recovery, `npm run admin:reset` reads the new password from stdin, or from private `ADMIN_PASSWORD`; `ADMIN_USERNAME` defaults to `admin`. It updates the scrypt hash, reactivates that administrator, revokes their sessions, and records an audit event. Never put a real password in source code or Git.
 
 ## Users and permissions
 
 All store pages, APIs, photos, PDF downloads and live updates require login. There is no public registration. In **مدیریت کاربران**, an administrator creates accounts, assigns roles, resets passwords and activates/deactivates accounts. Correct passwords grant access immediately, including newly created and reset accounts. Password changes remain available from the account page. Accounts are deactivated instead of deleted to preserve transaction history.
 
-| Capability | Admin — مدیر سیستم | Manager — مدیر | Staff — کارمند |
-| --- | --- | --- | --- |
-| Customers, sales, receipts, printing | Yes | Yes | Yes |
-| View stock and selling prices | Yes | Yes | Yes |
-| Receive/edit/archive inventory; view purchase costs | Yes | Yes | No |
-| Reports and bulk CSV/Excel exports | Yes | Yes | No |
-| Store settings, users and audit history | Yes | No | No |
+| Capability                                          | Admin — مدیر سیستم | Manager — مدیر | Staff — کارمند |
+| --------------------------------------------------- | ------------------ | -------------- | -------------- |
+| Customers, sales, receipts, printing                | Yes                | Yes            | Yes            |
+| View stock and selling prices                       | Yes                | Yes            | Yes            |
+| Receive/edit/archive inventory; view purchase costs | Yes                | Yes            | No             |
+| Reports and bulk CSV/Excel exports                  | Yes                | Yes            | No             |
+| Store settings, users and audit history             | Yes                | No             | No             |
 
 Permissions are enforced by the API as well as the interface. The last active administrator cannot be demoted or deactivated. Editing a user's account or changing/resetting their password revokes their sessions and live connections. Every user can change their own password from their account page. Use another administrator to reset a forgotten password.
 
@@ -146,7 +131,7 @@ For an explicitly named first administrator, `npm run admin:create -- --file <pa
 
 For an existing store, `cd backend && node scripts/add-samples.mjs` adds the named `samples-20260929-v1` batch: 6 customers, 8 rolls in one delivery, 6 sales and 3 receipts. Names start with **نمونه**. It preserves existing store settings and records, uses the current currency, and reuses the same batch on retries. Samples affect reports and balances like normal records.
 
-The seed creates 15 realistic flooring rolls, 5 customers, 10 sales and 3 receipts through the business services. It refuses to modify a nonempty database. Skip it when starting an actual store ledger.
+The seed creates 15 flooring rolls, 5 customers, 10 sales and subsequent receipts through the business services. It refuses to modify a nonempty database. Skip it when starting an actual store ledger.
 
 To start the apps separately:
 
@@ -173,34 +158,43 @@ Vite waits for the API health check before opening its development server. `Rest
 See [backend/.env.example](backend/.env.example). The server reads `backend/.env` when run through the supplied scripts.
 
 ```dotenv
-MONGO_URI=mongodb://127.0.0.1:27017/vinyl_store?replicaSet=rs0
+MYSQL_URL=mysql://vinyl_app:YOUR_PRIVATE_PASSWORD@127.0.0.1:3306/vinyl_store
+TEST_MYSQL_URL=mysql://vinyl_tests:YOUR_PRIVATE_TEST_PASSWORD@127.0.0.1:3306
 PORT=5000
 HOST=127.0.0.1
 CLIENT_URL=http://localhost:5173
 TZ=Asia/Kabul
 ```
 
-`TZ` controls business-day boundaries for dashboard/report totals. MongoDB stores UTC timestamps. Date-only form entries are stored at UTC midnight; within the default Afghanistan timezone they retain the entered business date. Keep browser and server in the store's timezone when operating the application.
+`TZ` controls business-day boundaries for dashboard/report totals. MySQL stores UTC timestamps. Date-only form entries are stored at UTC midnight; within the default Afghanistan timezone they retain the entered business date. Keep browser and server in the store's timezone when operating the application.
 
 The frontend uses relative API URLs through Vite's proxy. To change the backend proxy address, set `VITE_API_TARGET` in the shell before starting Vite. The browser needs no database credentials.
 
 Never commit `.env` or credentials.
 
-## Using an installed MongoDB server
+## Using an installed MySQL server
 
-Instead of `npm run db`, install MongoDB Community Server, create a data directory and run:
+Create `vinyl_store` with `utf8mb4` and `utf8mb4_bin`, then give a dedicated app user access to that database. Set `MYSQL_URL` in `backend/.env`; URL-encode password punctuation. Tables and indexes are created automatically at startup. The app requires InnoDB transactions; no replica set is needed. Bind local servers to `127.0.0.1`. Remote servers are outside the bundled deployment configuration.
 
-```sh
-mongod --dbpath /absolute/path/to/your/data --replSet rs0 --bind_ip 127.0.0.1 --port 27017
+For tests, use a separate user with privileges only on databases matching the literal prefix `vinyl_test_`; leave the database portion off `TEST_MYSQL_URL`. Example SQL, with unique private passwords:
+
+```sql
+CREATE DATABASE vinyl_store CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+CREATE USER 'vinyl_app'@'127.0.0.1' IDENTIFIED BY 'PRIVATE_APP_PASSWORD';
+GRANT ALL PRIVILEGES ON vinyl_store.* TO 'vinyl_app'@'127.0.0.1';
+CREATE USER 'vinyl_tests'@'127.0.0.1' IDENTIFIED BY 'PRIVATE_TEST_PASSWORD';
+GRANT ALL PRIVILEGES ON `vinyl\_test\_%`.* TO 'vinyl_tests'@'127.0.0.1';
 ```
 
-Initialize once with `mongosh`:
+## Migrating an existing MongoDB store
 
-```javascript
-rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "127.0.0.1:27017" }] });
-```
+1. Save a full `.vinyl-backup.gz` backup and copy `.data/uploads`. Stop the old API and frontend so records cannot change during migration. Keep the legacy database running until export completes.
+2. Configure and start MySQL with an empty target database. Set `MYSQL_URL` privately. Keep the old `MONGO_URI` temporarily for direct export.
+3. Run `npm run db:migrate`, or `npm run db:migrate -- --backup /absolute/path/store.vinyl-backup.gz`. The MongoDB driver is used only by this one-way migration tool; application and test runtime use MySQL.
+4. The tool validates account hashes, links, counters and photos, saves another private source backup, imports in one InnoDB transaction, and compares canonical hashes of **every full record** before committing. Nonempty business tables are refused. IDs, timestamps, currency, financial snapshots and legacy fields are preserved. Reports under `.data/backups/mysql-migration-*.json` contain counts and hashes without personal records. Sessions are excluded; sign in again.
+5. Remove `MONGO_URI` from the live `.env`, replace service dependencies, stop/disable `vinyl-mongodb.service`, and start the MySQL app. Retain `.data/mongo` and source backups for recovery. See [deployment instructions](backend/deploy/README.md). To roll back, stop the new services and use the pre-migration source commit, old configuration and MongoDB files; do not run both stores as writable instances.
 
-Wait for the node to become primary, then start the backend. An Atlas replica set also works by changing `MONGO_URI`. Startup checks transaction support and refuses a standalone MongoDB server; there is deliberately no unsafe partial-write fallback.
+The MySQL persistence layer has separate typed tables for each entity and JSON columns for invoice items, payment allocations and deleted-record snapshots. It keeps BSON IDs and the version-1 backup format for compatibility. Writes acquire one InnoDB coordination row lock, serializing ledger/stock operations across API processes; errors roll back all changes. Unique SQL indexes enforce numbering and retry keys. References are validated by business services and backup validation rather than SQL foreign keys, including retained historical/deleted references. Most filters, ordering and pagination run in SQL; nested-array predicates and report aggregation run in the application over loaded records. This is intended for the existing store workload, not large analytics deployments.
 
 ## Store workflow
 
@@ -248,7 +242,7 @@ npm run test:ui
 npm run build
 ```
 
-Backend tests start a disposable MongoDB replica set. They cover partial/full sales, oversell rejection, transaction rollback after a simulated storage failure, concurrent sales and payments, idempotent retries, decimal prices, snapshots, debt/receipt reconciliation, CRUD, validation, search, filters, pagination, aggregates, exports and archive safety. Additional coverage verifies customer-specific rates, Dari output, image validation/resizing and persistence, receipt snapshots, and actual PDF downloads.
+Backend tests create isolated real MySQL databases through the test-only user; start MySQL and configure `TEST_MYSQL_URL` before running them. Tests never clear the configured store database. They cover partial/full sales, oversell rejection, transaction rollback after a simulated storage failure, concurrent sales and payments, idempotent retries, decimal prices, snapshots, debt/receipt reconciliation, CRUD, validation, search, filters, pagination, aggregates, exports and archive safety. Additional coverage verifies customer-specific rates, Dari output, image validation/resizing and persistence, receipt snapshots, and actual PDF downloads.
 
 Multi-item sale tests cover mixed pricing methods, repeated-roll stock limits, concurrent baskets, full rollback, customer credit, totals counted once, legacy invoices and multi-page A4 PDFs. Delivery tests verify that each group's photo is applied to all of its generated rolls. Browser tests also check copying, replacing and removing group photos independently, whole-roll selection and one invoice for several items.
 
@@ -260,7 +254,8 @@ Browser tests launch their own disposable database, API on **5002** (override wi
 
 ```text
 backend/
-  config/         Database connection and transaction support check
+  config/         Database connection and table initialization
+  db/             MySQL models, typed tables and InnoDB transactions
   models/         VinylRoll, Delivery, Customer, CustomerPrice, Sale, Payment, Settings, Counter
   controllers/    Request validation and response handling
   routes/         REST endpoints
@@ -276,7 +271,7 @@ frontend/src/
   pages/          Dashboard, inventory, sales, customers, reports, settings
   services/       API client, shared store state and live refresh
   utils/          Formatting and form helpers
-scripts/          Persistent local MongoDB launcher and demo-only USD migration
+scripts/          Persistent local MySQL launcher and demo-only USD migration
 tests/            Browser workflow tests
 docs/design.md    Reference review, schema relationships and integrity design
 ```
@@ -324,15 +319,15 @@ Every customer sale saves its unit price automatically. The next sale suggests t
 
 ## Local operation, backups and limitations
 
-This application binds to loopback by default and includes authenticated role-based access. Network deployments require HTTPS with `NODE_ENV=production`, an exact `CLIENT_URL`, and a properly configured reverse proxy. Do not expose MongoDB publicly. The built-in login limiter is process-local; multi-instance deployments need a shared limiter.
+This application binds to loopback by default and includes authenticated role-based access. Network deployments require HTTPS with `NODE_ENV=production`, an exact `CLIENT_URL`, and a properly configured reverse proxy. Keep MySQL bound to localhost. The built-in login limiter is process-local; multi-instance deployments need a shared limiter.
 
 Administrators can use **تنظیمات → بکاپ کامل و بازیابی** to download a `.vinyl-backup.gz` file containing every application data collection and uploaded photo: inventory, customers (including removed customers), sales, receipts, deliveries, saved prices, numbering counters, users/password hashes, settings, audit history, and deleted-sale snapshots. This is separate from CSV/Excel report exports. Keep backup files private; they contain account credentials in hashed form and all store data. Configuration, source code, generated PDFs, and active login sessions are not included. PDFs can be regenerated from restored records.
 
 To restore, select a backup, choose **بررسی فایل بکاپ**, review the counts, then explicitly confirm **بازیابی این بکاپ**. The file must be this application's version-1 format; compressed size is limited to 100 MB and expanded size to 256 MB. Integrity, required collections, user accounts, linked records, counters, and photo paths/content are validated before replacing data. Store requests temporarily pause while a consistent backup or restore runs. This maintenance gate assumes the supplied single API process; do not restore through multiple independent API workers.
 
-Before replacement, the server writes a safety backup under `.data/backups` (override with `BACKUP_DIR`). Admins can download the ten most recent safety backups from Settings. Database replacement runs in one MongoDB transaction; a failed transaction keeps the current records. Missing photos are restored before the commit, existing photos are never overwritten, and unreferenced existing photos may remain. A conflicting same-name photo causes restore to stop. All sessions are revoked after a successful restore, so sign in with an administrator account and password from the imported backup.
+Before replacement, the server writes a safety backup under `.data/backups` (override with `BACKUP_DIR`). Admins can download the ten most recent safety backups from Settings. Database replacement runs in one MySQL/InnoDB transaction; a failed transaction keeps the current records. Missing photos are restored before the commit, existing photos are never overwritten, and unreferenced existing photos may remain. A conflicting same-name photo causes restore to stop. All sessions are revoked after a successful restore, so sign in with an administrator account and password from the imported backup.
 
-No automatic backup scheduler is included. Save copies off this machine regularly. For stores beyond the in-app size limits, use MongoDB Database Tools (`mongodump` / `mongorestore`) and copy `.data/uploads` (or `UPLOAD_DIR`); verify restoration in a separate environment.
+No automatic backup scheduler is included. Save copies off this machine regularly. For stores beyond the in-app size limits, use `mysqldump --single-transaction` / `mysql` (or MariaDB equivalents) and copy `.data/uploads` (or `UPLOAD_DIR`); verify restoration in a separate environment.
 
 The repository excludes local configuration (`.env`), database files, uploaded photos, backups, dependencies, build output and test artifacts. A fresh clone needs the setup steps above; pushing the source code does not back up the store's records or photos.
 

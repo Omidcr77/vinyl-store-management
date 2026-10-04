@@ -5,7 +5,7 @@ import {
   createHash,
 } from "node:crypto";
 import { promisify } from "node:util";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import User from "../models/User.js";
 import LoginSession from "../models/LoginSession.js";
 import AuthGuard from "../models/AuthGuard.js";
@@ -68,7 +68,7 @@ export async function bootstrapAdmin({ username, name, password }) {
   if (!/^[a-z0-9_.-]{3,40}$/.test(username) || !name?.trim())
     throw new AppError("نام و نام کاربری معتبر وارد کنید.");
   const passwordHash = await hashPassword(password);
-  return mongoose.connection.transaction(async (session) => {
+  return database.connection.transaction(async (session) => {
     await lockUsers(session);
     if (await User.exists({}).session(session))
       throw new AppError("مدیر نخست قبلاً ساخته شده است.");
@@ -105,9 +105,10 @@ export function cookie(res, token, expires) {
 export async function issueSession(res, user) {
   const token = randomBytes(32).toString("hex");
   const csrf = randomBytes(32).toString("hex");
-  const settings = await Settings.findById('store').lean();
+  const settings = await Settings.findById("store").lean();
   const minutes = settings?.sessionTimeoutMinutes ?? 480;
   const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
+  await LoginSession.deleteMany({ expiresAt: { $lte: new Date() } });
   await LoginSession.create({
     _id: tokenHash(token),
     userId: user._id,

@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { actorSchema } from "../services/actor.js";
-const schema = new mongoose.Schema(
+const schema = new database.Schema(
   {
     ...actorSchema,
     customerId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Customer",
       required: true,
       index: true,
@@ -20,7 +20,7 @@ const schema = new mongoose.Schema(
       enum: ["sale", "saved", "removed", "previous"],
       required: true,
     },
-    saleId: { type: mongoose.Schema.Types.ObjectId, ref: "Sale" },
+    saleId: { type: database.Schema.Types.ObjectId, ref: "Sale" },
     billNumber: String,
     itemIndex: Number,
     voided: { type: Boolean, default: false },
@@ -31,4 +31,4 @@ schema.index(
   { saleId: 1, itemIndex: 1 },
   { unique: true, partialFilterExpression: { source: "sale" } },
 );
-export default mongoose.model("CustomerPriceHistory", schema);
+export default database.model("CustomerPriceHistory", schema);

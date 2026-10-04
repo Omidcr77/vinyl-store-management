@@ -3,7 +3,7 @@ import Supplier from "../models/Supplier.js";
 import SupplierEntry from "../models/SupplierEntry.js";
 import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import DeletedRecord from "../models/DeletedRecord.js";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import Settings from "../models/Settings.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
@@ -17,12 +17,7 @@ import LoginSession from "../models/LoginSession.js";
 import AuditEvent from "../models/AuditEvent.js";
 import AuthGuard from "../models/AuthGuard.js";
 export async function connectDB(uri) {
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
-  const hello = await mongoose.connection.db.admin().command({ hello: 1 });
-  if (!hello.setName && hello.msg !== "isdbgrid")
-    throw new Error(
-      "MongoDB must be a replica set for safe transactions. Run npm run db, or configure a replica set.",
-    );
+  await database.connect(uri || process.env.MYSQL_URL);
   await Promise.all(
     [
       DeletedRecord,
@@ -51,7 +46,13 @@ export async function connectDB(uri) {
   );
   await Settings.updateOne(
     { _id: "store" },
-    { $setOnInsert: { storeName: "فرش و قالین فروشی" } },
-    { upsert: true },
+    {
+      $setOnInsert: {
+        storeName: "فرش و قالین فروشی",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    },
+    { upsert: true, timestamps: false },
   );
 }

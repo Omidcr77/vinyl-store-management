@@ -1,7 +1,7 @@
 [Unit]
 Description=Vinyl Store API
-Wants=vinyl-mongodb.service
-After=vinyl-mongodb.service
+Wants=vinyl-mysql.service
+After=vinyl-mysql.service
 PartOf=vinyl-store.target
 StartLimitIntervalSec=0
 

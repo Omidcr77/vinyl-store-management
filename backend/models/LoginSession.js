@@ -1,9 +1,9 @@
-import mongoose from "mongoose";
-const schema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const schema = new database.Schema(
   {
     _id: String,
     userId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "User",
       required: true,
       index: true,
@@ -14,4 +14,4 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.model("LoginSession", schema);
+export default database.model("LoginSession", schema);

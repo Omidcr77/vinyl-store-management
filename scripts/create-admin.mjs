@@ -2,17 +2,14 @@ import dotenv from "dotenv";
 import { randomBytes } from "node:crypto";
 import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
-import mongoose from "mongoose";
+import database from "../backend/db/mysql.js";
 import { connectDB } from "../backend/config/db.js";
 import { bootstrapAdmin } from "../backend/services/authService.js";
 // Local-only bootstrap. No HTTP registration endpoint or shared default password.
 dotenv.config({ path: resolve("backend/.env"), quiet: true });
 let file;
 try {
-  await connectDB(
-    process.env.MONGO_URI ||
-      "mongodb://127.0.0.1:27017/vinyl_store?replicaSet=rs0",
-  );
+  await connectDB(process.env.MYSQL_URL);
   let credentials;
   if (process.argv[2] === "--file" && process.argv[3])
     credentials = JSON.parse(await readFile(resolve(process.argv[3]), "utf8"));
@@ -45,5 +42,5 @@ try {
   console.error(error.message);
   process.exitCode = 1;
 } finally {
-  await mongoose.disconnect();
+  await database.disconnect();
 }

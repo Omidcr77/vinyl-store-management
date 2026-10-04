@@ -1,14 +1,10 @@
 import { Router } from "express";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { z } from "zod";
 import User from "../models/User.js";
 import LoginSession from "../models/LoginSession.js";
 import AuditEvent from "../models/AuditEvent.js";
-import {
-  requireAuth,
-  csrf,
-  allowRoles,
-} from "../middleware/auth.js";
+import { requireAuth, csrf, allowRoles } from "../middleware/auth.js";
 import {
   publicUser,
   hashPassword,
@@ -110,7 +106,7 @@ router.post("/password", async (req, res) => {
   if (input.password === input.currentPassword)
     throw new AppError("رمز جدید باید متفاوت باشد.");
   const encoded = await hashPassword(input.password);
-  await mongoose.connection.transaction(async (session) => {
+  await database.connection.transaction(async (session) => {
     await lockUsers(session);
     const user = await User.findById(req.user._id)
       .select("+passwordHash")
@@ -144,7 +140,7 @@ usersRouter.post("/", async (req, res) => {
     .extend({ password: z.string().min(12).max(128) })
     .parse(req.body);
   const passwordHash = await hashPassword(input.password);
-  const user = await mongoose.connection.transaction(async (session) => {
+  const user = await database.connection.transaction(async (session) => {
     await lockUsers(session);
     await checkAdmin(req, session);
     const [created] = await User.create(
@@ -190,7 +186,7 @@ usersRouter.put("/:id", async (req, res) => {
     ? await hashPassword(input.password)
     : null;
   const userId = id.parse(req.params.id);
-  const user = await mongoose.connection.transaction(async (session) => {
+  const user = await database.connection.transaction(async (session) => {
     await lockUsers(session);
     await checkAdmin(req, session);
     const u = required(await User.findById(userId).session(session));

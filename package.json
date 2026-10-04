@@ -13,12 +13,15 @@
     "seed": "npm run seed -w backend",
     "build": "npm run build -w frontend",
     "test": "npm run test -w backend && node --test tests/startup.test.mjs tests/restart.test.mjs tests/calendar.test.mjs",
-    "test:ui": "node tests/ui.mjs"
+    "test:ui": "node tests/ui.mjs",
+    "db:setup": "node scripts/setup-mysql.mjs",
+    "db:migrate": "node scripts/migrate-mongodb-to-mysql.mjs",
+    "admin:reset": "node scripts/reset-admin.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.0",
     "http-proxy-3": "^1.22.0",
-    "mongodb-memory-server": "^10.2.0",
+    "mongodb": "^7.7.0",
     "playwright": "^1.55.0",
     "prettier": "^3.9.9"
   }

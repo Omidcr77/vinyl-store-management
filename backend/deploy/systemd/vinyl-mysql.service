@@ -1,12 +1,12 @@
 [Unit]
-Description=Vinyl Store MongoDB replica set
+Description=Vinyl Store MySQL-compatible database (MariaDB)
 PartOf=vinyl-store.target
 StartLimitIntervalSec=0
 
 [Service]
 Type=simple
 WorkingDirectory=/home/omid/projects/vinyl-store-management
-ExecStart=/home/omid/.local/lib/vinyl-store/mongod --dbpath /home/omid/projects/vinyl-store-management/.data/mongo --replSet rs0 --bind_ip 127.0.0.1 --port 27017
+ExecStart=/usr/bin/node scripts/mysql-server.mjs
 Restart=always
 RestartSec=3
 TimeoutStopSec=120

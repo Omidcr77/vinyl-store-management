@@ -1,12 +1,16 @@
-import mongoose from "mongoose";
-const schema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const schema = new database.Schema(
   {
     _id: { type: String, default: "store" },
     storeName: { type: String, default: "فرش و قالین فروشی" },
     storeAddress: { type: String, default: "" },
     phone: { type: String, default: "" },
     currency: { type: String, default: "USD" },
-    calendar: { type: String, enum: ["gregory", "persian"], default: "gregory" },
+    calendar: {
+      type: String,
+      enum: ["gregory", "persian"],
+      default: "gregory",
+    },
     lowStockThreshold: { type: Number, default: 5, min: 0 },
     defaultVinylWidth: { type: Number, default: 4, min: 0.001 },
     invoiceFooter: { type: String, default: "از خرید شما سپاسگزاریم." },
@@ -15,4 +19,4 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.model("Settings", schema);
+export default database.model("Settings", schema);

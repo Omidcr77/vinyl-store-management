@@ -1,6 +1,6 @@
 import { actorSchema } from "../services/actor.js";
-import mongoose from "mongoose";
-const schema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const schema = new database.Schema(
   {
     ...actorSchema,
     rollNumber: { type: Number, required: true, unique: true },
@@ -26,7 +26,7 @@ const schema = new mongoose.Schema(
     landedCostPerMeter: Number,
     costCurrency: String,
     supplierId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Supplier",
       index: true,
     },
@@ -34,7 +34,7 @@ const schema = new mongoose.Schema(
     sellingPrice: { type: Number, min: 0 },
     supplier: String,
     deliveryId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Delivery",
       index: true,
     },
@@ -45,4 +45,4 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.model("VinylRoll", schema);
+export default database.model("VinylRoll", schema);

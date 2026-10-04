@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-const schema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const schema = new database.Schema(
   {
     username: { type: String, required: true, unique: true },
     name: { type: String, required: true },
@@ -12,4 +12,4 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.model("User", schema);
+export default database.model("User", schema);

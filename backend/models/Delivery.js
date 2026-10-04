@@ -1,14 +1,14 @@
 import { actorSchema } from "../services/actor.js";
-import mongoose from "mongoose";
-export default mongoose.model(
+import database from "../db/mysql.js";
+export default database.model(
   "Delivery",
-  new mongoose.Schema(
+  new database.Schema(
     {
       ...actorSchema,
       deliveryNumber: { type: String, required: true, unique: true },
       supplier: String,
       supplierId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: database.Schema.Types.ObjectId,
         ref: "Supplier",
         index: true,
       },

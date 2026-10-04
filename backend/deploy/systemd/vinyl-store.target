@@ -1,7 +1,7 @@
 [Unit]
 Description=Vinyl Store application
-Wants=vinyl-mongodb.service vinyl-api.service vinyl-web.service
-After=vinyl-mongodb.service vinyl-api.service vinyl-web.service
+Wants=vinyl-mysql.service vinyl-api.service vinyl-web.service
+After=vinyl-mysql.service vinyl-api.service vinyl-web.service
 
 [Install]
 WantedBy=default.target

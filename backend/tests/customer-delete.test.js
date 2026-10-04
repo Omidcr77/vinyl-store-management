@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import database from "../db/mysql.js";
+import { TestDatabase } from "./support/database.js";
 import request, { signInTestAdmin } from "./support/auth.js";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
@@ -12,13 +12,13 @@ import User from "../models/User.js";
 import AuditEvent from "../models/AuditEvent.js";
 let db, app;
 before(async () => {
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("customer_delete_tests"));
   app = createApp();
   await signInTestAdmin(app);
 });
 after(async () => {
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
 });
 const customer = async () =>
@@ -106,17 +106,14 @@ test("concurrent sale and customer deletion retain a valid account", async () =>
   const c = await customer(),
     r = await roll();
   const [sale, deletion] = await Promise.all([
-    request(app)
-      .post("/api/sales")
-      .set("Idempotency-Key", "delete-race")
-      .send({
-        customerId: c._id,
-        vinylId: r._id,
-        soldLength: 1,
-        pricingMethod: "linear",
-        unitPrice: 10,
-        paidAmount: 10,
-      }),
+    request(app).post("/api/sales").set("Idempotency-Key", "delete-race").send({
+      customerId: c._id,
+      vinylId: r._id,
+      soldLength: 1,
+      pricingMethod: "linear",
+      unitPrice: 10,
+      paidAmount: 10,
+    }),
     request(app).delete(`/api/customers/${c._id}`),
   ]);
   assert.equal(deletion.status, 200);

@@ -1,8 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { randomUUID } from "node:crypto";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { TestDatabase } from "./support/database.js";
 import request, { signInTestAdmin } from "./support/auth.js";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
@@ -14,13 +14,13 @@ import DeletedRecord from "../models/DeletedRecord.js";
 import User from "../models/User.js";
 let db, app;
 before(async () => {
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("bulk_deletion"));
   app = createApp();
   await signInTestAdmin(app);
 });
 after(async () => {
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
 });
 const post = async (path, body, key = randomUUID()) =>
@@ -65,7 +65,7 @@ test("bulk selection validates ids, permissions and atomic rollback", async () =
   await remove("sales", ["bad"]).expect(400);
   await remove("customers", [
     a._id,
-    new mongoose.Types.ObjectId().toString(),
+    new database.Types.ObjectId().toString(),
   ]).expect(404);
   assert.equal((await Customer.findById(a._id)).archived, false);
   await User.updateOne({ username: "testadmin" }, { $set: { role: "staff" } });
@@ -168,7 +168,7 @@ test("inventory bulk deletion is atomic and succeeds after the related sale is r
   assert.equal((await VinylRoll.findById(a._id)).archived, false);
   await remove("sales", [
     s._id,
-    new mongoose.Types.ObjectId().toString(),
+    new database.Types.ObjectId().toString(),
   ]).expect(404);
   assert.ok(await Sale.findById(s._id));
   assert.equal((await VinylRoll.findById(b._id)).length, 29);

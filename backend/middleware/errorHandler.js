@@ -73,7 +73,7 @@ export function errorHandler(error, req, res, next) {
   } else if (error.name === "ValidationError") {
     status = 400;
     message = "خانه‌های ضروری و مقدارهای عددی را بررسی کنید.";
-  } else if (error.code === 11000) {
+  } else if (error.code === "ER_DUP_ENTRY") {
     status = 409;
     message = "موردی با این شماره قبلاً ثبت شده است. دوباره کوشش کنید.";
   } else if (status >= 500) {

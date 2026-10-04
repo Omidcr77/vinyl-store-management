@@ -2,11 +2,7 @@ import dotenv from "dotenv";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { concurrently } from "concurrently";
-import {
-  ensureDatabase,
-  defaultMongoUri,
-  portIsOpen,
-} from "./dev-database.mjs";
+import { ensureDatabase, portIsOpen } from "./dev-database.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 process.chdir(root);
@@ -26,7 +22,7 @@ try {
         `Port ${port} is already in use. Close the previous store server before running npm run dev again.`,
       );
   }
-  database = await ensureDatabase(process.env.MONGO_URI || defaultMongoUri);
+  database = await ensureDatabase(process.env.MYSQL_URL);
   if (!stopping) {
     process.env.VITE_API_TARGET ||= `http://127.0.0.1:${apiPort}`;
     const run = concurrently(

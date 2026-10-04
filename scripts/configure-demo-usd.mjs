@@ -1,5 +1,10 @@
-import "dotenv/config";
-import mongoose from "mongoose";
+import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
+dotenv.config({
+  path: fileURLToPath(new URL("../backend/.env", import.meta.url)),
+  quiet: true,
+});
+import database from "../backend/db/mysql.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { connectDB } from "../backend/config/db.js";
 import Settings from "../backend/models/Settings.js";
@@ -9,10 +14,7 @@ import Customer from "../backend/models/Customer.js";
 import { receiptNumber } from "../backend/utils/billNumber.js";
 import { transaction } from "../backend/services/transaction.js";
 try {
-  await connectDB(
-    process.env.MONGO_URI ||
-      "mongodb://127.0.0.1:27017/vinyl_store?replicaSet=rs0",
-  );
+  await connectDB(process.env.MYSQL_URL);
   await transaction(async (session) => {
     const settings = await Settings.findByIdAndUpdate(
       "store",
@@ -65,5 +67,5 @@ try {
     console.log(`Configured USD demo and store name. Backup: ${backup}`);
   });
 } finally {
-  await mongoose.disconnect();
+  await database.disconnect();
 }

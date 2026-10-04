@@ -1,17 +1,14 @@
 import "dotenv/config";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import mongoose from "mongoose";
+import database from "./db/mysql.js";
 import { closePdfBrowser } from "./services/documentService.js";
 import { createApp } from "./app.js";
 import { connectDB } from "./config/db.js";
 import { protectSockets } from "./services/authService.js";
 process.env.TZ ||= "Asia/Kabul";
 try {
-  await connectDB(
-    process.env.MONGO_URI ||
-      "mongodb://127.0.0.1:27017/vinyl_store?replicaSet=rs0",
-  );
+  await connectDB(process.env.MYSQL_URL);
   const app = createApp(),
     server = createServer(app);
   const io = new Server(server, {
@@ -40,12 +37,12 @@ try {
       io.close();
       server.close(async () => {
         await closePdfBrowser();
-        await mongoose.disconnect();
+        await database.disconnect();
         process.exit(0);
       });
     });
 } catch (error) {
   console.error(error.message);
-  await mongoose.disconnect();
+  await database.disconnect();
   process.exit(1);
 }

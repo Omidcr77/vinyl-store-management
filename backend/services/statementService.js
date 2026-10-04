@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
 import Payment from "../models/Payment.js";
@@ -10,7 +10,7 @@ import { sendDocumentPdf } from "./documentService.js";
 
 export async function statementData(customerId) {
   const parsedId = id.parse(customerId);
-  return mongoose.connection.transaction(
+  return database.connection.transaction(
     async (session) => {
       const customer = required(
         await Customer.findById(parsedId).session(session).lean(),

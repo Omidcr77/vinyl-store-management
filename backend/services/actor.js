@@ -1,11 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import AuditEvent from "../models/AuditEvent.js";
 export const actorContext = new AsyncLocalStorage();
 export const actorSchema = {
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  createdBy: { type: database.Schema.Types.ObjectId, ref: "User" },
   createdByName: String,
-  updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  updatedBy: { type: database.Schema.Types.ObjectId, ref: "User" },
   updatedByName: String,
 };
 export function actorFields(create = false) {

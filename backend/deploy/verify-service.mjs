@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
+import { connectDB } from "../config/db.js";
+import { EJSON } from "bson";
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -31,9 +33,7 @@ if (mode === "verify") {
   }
   assert.ok(ready, "Frontend/API did not become healthy");
 }
-await mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 5000,
-});
+await connectDB(process.env.MYSQL_URL);
 try {
   const snapshot = {};
   for (const name of [
@@ -46,16 +46,22 @@ try {
     "supplierentries",
     "users",
     "customerpricehistories",
+    "settings",
+    "counters",
+    "customerprices",
+    "authguards",
+    "auditevents",
+    "deletedrecords",
   ]) {
-    const records = await mongoose.connection
+    const records = await database.connection.db
       .collection(name)
-      .find({}, { projection: { _id: 1 } })
+      .find({})
       .sort({ _id: 1 })
       .toArray();
     snapshot[name] = {
       count: records.length,
-      idsHash: createHash("sha256")
-        .update(records.map((r) => String(r._id)).join("\n"))
+      recordsHash: createHash("sha256")
+        .update(EJSON.stringify(records, { relaxed: false }))
         .digest("hex"),
     };
   }
@@ -65,13 +71,13 @@ try {
     assert.deepEqual(
       snapshot,
       JSON.parse(await readFile(path, "utf8")),
-      "Stored record identities changed",
+      "Stored record contents changed",
     );
   console.log(
     mode === "snapshot"
-      ? "Saved record-count and identity checks (no personal data)."
-      : "Frontend/API healthy; all saved record counts and identities preserved.",
+      ? "Saved record-count and content checks (no personal data)."
+      : "Frontend/API healthy; all saved record counts and contents preserved.",
   );
 } finally {
-  await mongoose.disconnect();
+  await database.disconnect();
 }

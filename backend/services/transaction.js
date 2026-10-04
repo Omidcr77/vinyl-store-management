@@ -1,11 +1,11 @@
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { createHash } from "node:crypto";
 import { AppError } from "../utils/errors.js";
 import { actorContext, audit } from "./actor.js";
 export const hash = (data) =>
   createHash("sha256").update(JSON.stringify(data)).digest("hex");
 export async function transaction(work) {
-  return mongoose.connection.transaction(async (session) => {
+  return database.connection.transaction(async (session) => {
     const result = await work(session);
     const actor = actorContext.getStore();
     if (actor?.action) await audit(actor.action, result?._id, session);

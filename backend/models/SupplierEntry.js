@@ -1,10 +1,10 @@
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { actorSchema } from "../services/actor.js";
-const schema = new mongoose.Schema(
+const schema = new database.Schema(
   {
     ...actorSchema,
     supplierId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Supplier",
       required: true,
       index: true,
@@ -37,10 +37,10 @@ const schema = new mongoose.Schema(
     reference: String,
     details: String,
     paymentMethod: String,
-    deliveryId: { type: mongoose.Schema.Types.ObjectId, ref: "Delivery" },
-    vinylId: { type: mongoose.Schema.Types.ObjectId, ref: "VinylRoll" },
+    deliveryId: { type: database.Schema.Types.ObjectId, ref: "Delivery" },
+    vinylId: { type: database.Schema.Types.ObjectId, ref: "VinylRoll" },
     reversalOf: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "SupplierEntry",
       unique: true,
       sparse: true,
@@ -51,4 +51,4 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.model("SupplierEntry", schema);
+export default database.model("SupplierEntry", schema);

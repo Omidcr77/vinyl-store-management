@@ -1,8 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import request, { signInTestAdmin } from "./support/auth.js";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { TestDatabase } from "./support/database.js";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
 import { closePdfBrowser } from "../services/documentService.js";
@@ -10,14 +10,14 @@ import { renderStatement } from "../../shared/bill.js";
 import { dateText } from "../../shared/calendar.js";
 let db, app;
 before(async () => {
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("statement_tests"));
   app = createApp();
   await signInTestAdmin(app);
 });
 after(async () => {
   await closePdfBrowser();
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
 });
 test("statements contain all purchases, count payments once and paginate portrait PDFs", async () => {

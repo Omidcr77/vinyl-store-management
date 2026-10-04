@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import Sale from "../models/Sale.js";
 import VinylRoll from "../models/VinylRoll.js";
 import Customer from "../models/Customer.js";
@@ -11,7 +11,7 @@ export async function salesSummary(filter = {}) {
   if (filter.customerId)
     filter = {
       ...filter,
-      customerId: new mongoose.Types.ObjectId(filter.customerId),
+      customerId: new database.Types.ObjectId(filter.customerId),
     };
   const [result] = await Sale.aggregate([
     { $match: filter },

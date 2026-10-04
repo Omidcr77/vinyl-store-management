@@ -20,11 +20,11 @@ export async function waitForApi(
       if (response.ok && body.success === true && body.data?.status === "ok")
         return;
     } catch {
-      // Startup can temporarily refuse connections while MongoDB connects.
+      // Startup can temporarily refuse connections while MySQL connects.
     }
     await delay(Math.max(0, Math.min(intervalMs, deadline - Date.now())));
   }
   throw new Error(
-    `API is not ready at ${healthUrl}. Start MongoDB with npm run db, then run npm run dev. If using a different API address, set VITE_API_TARGET to match it.`,
+    `API is not ready at ${healthUrl}. Start MySQL with npm run db, then run npm run dev. If using a different API address, set VITE_API_TARGET to match it.`,
   );
 }

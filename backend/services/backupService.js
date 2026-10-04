@@ -1,9 +1,10 @@
+import { EJSON, ObjectId } from "bson";
 import { migratePriceHistory } from "./priceHistoryMigration.js";
 import Supplier from "../models/Supplier.js";
 import SupplierEntry from "../models/SupplierEntry.js";
 import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import sharp from "sharp";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import { gzip, gunzip } from "node:zlib";
 import { promisify } from "node:util";
 import { createHash, randomUUID } from "node:crypto";
@@ -29,7 +30,7 @@ import DeletedRecord from "../models/DeletedRecord.js";
 
 const zip = promisify(gzip),
   unzip = promisify(gunzip);
-const EJSON = mongoose.mongo.BSON.EJSON;
+
 export const MAX_BACKUP_BYTES = 100 * 1024 * 1024;
 const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
 const models = [
@@ -76,13 +77,13 @@ export async function createBackup() {
     ...models.map((model) => model.collection.name),
     LoginSession.collection.name,
   ]);
-  const existing = await mongoose.connection.db
+  const existing = await database.connection.db
     .listCollections({}, { nameOnly: true })
     .toArray();
   if (existing.some((c) => !known.has(c.name) && !c.name.startsWith("system.")))
     throw bad("بانک اطلاعاتی مجموعهٔ ناشناخته دارد؛ بکاپ ناقص ساخته نمی‌شود.");
   let payload;
-  await mongoose.connection.transaction(
+  await database.connection.transaction(
     async (session) => {
       const collections = {};
       let size = 0;
@@ -253,7 +254,7 @@ export async function validateBackup(buffer) {
         throw bad(`معلومات مجموعهٔ ${model.collection.name} معتبر نیست.`);
       if (
         model.schema.path("_id").instance === "ObjectId" &&
-        !(doc._id instanceof mongoose.mongo.ObjectId)
+        !(doc._id instanceof ObjectId)
       )
         throw bad();
     }
@@ -455,7 +456,7 @@ export async function restoreBackup(validated, user) {
       if (e.code !== "EEXIST") throw e;
     }
   }
-  await mongoose.connection.transaction(
+  await database.connection.transaction(
     async (session) => {
       for (const model of models) {
         await model.collection.deleteMany({}, { session });

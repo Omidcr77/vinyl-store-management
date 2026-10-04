@@ -1,9 +1,9 @@
 import { actorSchema } from "../services/actor.js";
-import mongoose from "mongoose";
-const itemSchema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const itemSchema = new database.Schema(
   {
     vinylId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "VinylRoll",
       required: true,
     },
@@ -25,13 +25,13 @@ const itemSchema = new mongoose.Schema(
   },
   { _id: false },
 );
-const schema = new mongoose.Schema(
+const schema = new database.Schema(
   {
     ...actorSchema,
     items: { type: [itemSchema], default: undefined },
     billNumber: { type: String, required: true, unique: true },
     customerId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Customer",
       index: true,
     },
@@ -39,7 +39,7 @@ const schema = new mongoose.Schema(
     customerPhone: String,
     customerAddress: String,
     vinylId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "VinylRoll",
       required: true,
       index: true,
@@ -74,4 +74,4 @@ const schema = new mongoose.Schema(
 schema.index({ customerId: 1, soldDate: 1 });
 schema.index({ "items.vinylId": 1 });
 schema.index({ "items.rollNumber": 1 });
-export default mongoose.model("Sale", schema);
+export default database.model("Sale", schema);

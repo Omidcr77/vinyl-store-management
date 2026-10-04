@@ -7,8 +7,8 @@ import sharp from "sharp";
 import ExcelJS from "exceljs";
 import { closePdfBrowser } from "../backend/services/documentService.js";
 import { resolve } from "node:path";
-import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import database from "../backend/db/mysql.js";
+import { TestDatabase } from "../backend/tests/support/database.js";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { connectDB } from "../backend/config/db.js";
@@ -56,7 +56,7 @@ try {
     "../",
     `${uploadDir.split("/").pop()}-backups`,
   );
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("ui_tests"));
   const app = createApp();
   server = createServer(app);
@@ -511,9 +511,7 @@ try {
   await page
     .getByRole("button", { name: "باقی‌داری مشتریان", exact: true })
     .click();
-  await page
-    .getByRole("link", { name: "احمدشاه صافی", exact: true })
-    .waitFor();
+  await page.getByRole("link", { name: "احمدشاه صافی", exact: true }).waitFor();
   await page.getByRole("link", { name: "تنظیمات", exact: true }).click();
   await page.getByLabel("حد کمبود موجودی").fill("2");
   await page.getByRole("button", { name: "ذخیرهٔ تنظیمات" }).click();
@@ -805,7 +803,8 @@ try {
   assert.ok(
     truckRolls.items.every(
       (r) =>
-        r.deliveryReference === "HRT-1405-01" && r.supplier === "شرکت تجارتی پامیر",
+        r.deliveryReference === "HRT-1405-01" &&
+        r.supplier === "شرکت تجارتی پامیر",
     ),
   );
   console.log(
@@ -1459,7 +1458,7 @@ try {
   vite?.kill();
   io?.close();
   if (server) await new Promise((resolve) => server.close(resolve));
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
   if (uploadDir) await rm(uploadDir, { recursive: true, force: true });
   if (process.env.BACKUP_DIR)

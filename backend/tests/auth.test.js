@@ -1,8 +1,8 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
-import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import database from "../db/mysql.js";
+import { TestDatabase } from "./support/database.js";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { io as client } from "socket.io-client";
@@ -41,7 +41,7 @@ async function login(username, pass = password) {
   };
 }
 before(async () => {
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("auth"));
   app = createApp();
   server = createServer(app);
@@ -52,7 +52,7 @@ before(async () => {
 });
 after(async () => {
   await new Promise((r) => io.close(r));
-  await mongoose.disconnect();
+  await database.disconnect();
   await db.stop();
 });
 test("authentication, roles, audit and session lifecycle", async (t) => {

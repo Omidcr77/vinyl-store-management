@@ -3,8 +3,8 @@ import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import database from "../db/mysql.js";
+import { TestDatabase } from "./support/database.js";
 import request, { signInTestAdmin } from "./support/auth.js";
 import { connectDB } from "../config/db.js";
 import { createApp } from "../app.js";
@@ -13,14 +13,14 @@ import SupplierEntry from "../models/SupplierEntry.js";
 import { createBackup, validateBackup } from "../services/backupService.js";
 let db, app;
 before(async () => {
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("supplier_tests"));
   app = createApp();
   await signInTestAdmin(app);
 });
 after(async () => {
   await closePdfBrowser();
-  await mongoose.disconnect();
+  await database.disconnect();
   await db.stop();
 });
 const post = (path, body, key = randomUUID()) =>

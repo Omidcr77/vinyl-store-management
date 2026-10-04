@@ -1,11 +1,11 @@
 import { actorSchema } from "../services/actor.js";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 
-const schema = new mongoose.Schema(
+const schema = new database.Schema(
   {
     ...actorSchema,
     customerId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Customer",
       required: true,
     },
@@ -16,4 +16,4 @@ const schema = new mongoose.Schema(
   { timestamps: true },
 );
 schema.index({ customerId: 1, type: 1, pricingMethod: 1 }, { unique: true });
-export default mongoose.model("CustomerPrice", schema);
+export default database.model("CustomerPrice", schema);

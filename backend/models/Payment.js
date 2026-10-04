@@ -1,6 +1,6 @@
 import { actorSchema } from "../services/actor.js";
-import mongoose from "mongoose";
-const schema = new mongoose.Schema(
+import database from "../db/mysql.js";
+const schema = new database.Schema(
   {
     ...actorSchema,
     receiptNumber: { type: String, unique: true, sparse: true },
@@ -12,7 +12,7 @@ const schema = new mongoose.Schema(
     balanceAfter: Number,
     creditAmount: { type: Number, default: 0, min: 0 },
     customerId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: database.Schema.Types.ObjectId,
       ref: "Customer",
       required: true,
       index: true,
@@ -29,7 +29,7 @@ const schema = new mongoose.Schema(
     allocations: [
       {
         _id: false,
-        saleId: { type: mongoose.Schema.Types.ObjectId, ref: "Sale" },
+        saleId: { type: database.Schema.Types.ObjectId, ref: "Sale" },
         amount: Number,
       },
     ],
@@ -38,4 +38,4 @@ const schema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-export default mongoose.model("Payment", schema);
+export default database.model("Payment", schema);

@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import mongoose from "mongoose";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import database from "../db/mysql.js";
+import { TestDatabase } from "./support/database.js";
 import request, { signInTestAdmin } from "./support/auth.js";
 import sharp from "sharp";
 import { connectDB } from "../config/db.js";
@@ -14,14 +14,14 @@ let db, app, uploadDir;
 before(async () => {
   uploadDir = await mkdtemp(join(tmpdir(), "vinyl-images-test-"));
   process.env.UPLOAD_DIR = uploadDir;
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("documents"));
   app = createApp();
   await signInTestAdmin(app);
 });
 after(async () => {
   await closePdfBrowser();
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
   if (uploadDir) await rm(uploadDir, { recursive: true, force: true });
 });

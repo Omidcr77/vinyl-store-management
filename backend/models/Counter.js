@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-export default mongoose.model(
+import database from "../db/mysql.js";
+export default database.model(
   "Counter",
-  new mongoose.Schema({ _id: String, value: { type: Number, default: 0 } }),
+  new database.Schema({ _id: String, value: { type: Number, default: 0 } }),
 );

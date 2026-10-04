@@ -3,10 +3,10 @@ import SupplierEntry from "../models/SupplierEntry.js";
 import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import mongoose from "mongoose";
+import database from "../db/mysql.js";
 import supertest from "supertest";
 import sharp from "sharp";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { TestDatabase } from "./support/database.js";
 import { mkdtemp, rm, readFile, unlink, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -86,7 +86,7 @@ before(async () => {
   directory = await mkdtemp(join(tmpdir(), "vinyl-backup-test-"));
   process.env.UPLOAD_DIR = join(directory, "uploads");
   process.env.BACKUP_DIR = join(directory, "backups");
-  db = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  db = await TestDatabase.create();
   await connectDB(db.getUri("backups"));
   app = createApp();
   await User.create({
@@ -162,7 +162,7 @@ before(async () => {
   assert.ok(delivery._id);
 });
 after(async () => {
-  await mongoose.disconnect();
+  await database.disconnect();
   await db?.stop();
   if (directory) await rm(directory, { recursive: true, force: true });
   delete process.env.UPLOAD_DIR;
