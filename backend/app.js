@@ -14,6 +14,8 @@ export function createApp() {
   const origins = allowedOrigins();
   app.use("/api", (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
     next();
   });
   app.use(cors({ origin: origins, credentials: true }));

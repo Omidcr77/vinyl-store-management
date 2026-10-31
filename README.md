@@ -333,7 +333,7 @@ The repository excludes local configuration (`.env`), database files, uploaded p
 
 Customer and stock deletion archives records. Deleting a sale retains a snapshot, restores stock and updates customer balances; original receipts remain. Supplier manual entries use explicit reversals. A complete returns/refunds workflow is not included.
 
-The last dependency audit reported two moderate findings in ExcelJS's transitive UUID dependency (and the parent package), with no high or critical findings. The advisory concerns UUID v3/v5/v6 buffer handling; ExcelJS uses v4 here. Review dependency updates before network deployment.
+The 2026-10-31 security patch leaves no frontend dependency audit findings and no high/critical findings in the application dependency tree. Nine moderate findings remain in ExcelJS's dependency chain and need separate review. The [security review](docs/security-review-2026-10-31.md) documents a fixed private-file exposure in the former public Vite fallback, required credential rotation, deployed browser policies, tests and assessment limits.
 
 ## Reference
 
