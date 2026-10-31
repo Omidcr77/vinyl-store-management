@@ -1,3 +1,5 @@
+import { actorText } from "../../shared/actors.js";
+import { audit } from "./actor.js";
 import ExcelJS from "exceljs";
 import VinylRoll from "../models/VinylRoll.js";
 import Sale from "../models/Sale.js";
@@ -75,6 +77,10 @@ const safe = (value) => {
   return /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
 };
 const headers = {
+  createdByLabel: "ثبت‌کننده (نام، نقش، نام کاربری)",
+  updatedByLabel: "آخرین تغییر توسط",
+  createdAt: "زمان ثبت",
+  updatedAt: "زمان آخرین تغییر",
   itemDetails: "اجناس بل (رول، جنس، نوع، رنگ، ابعاد، نرخ، مبلغ)",
   rollNumber: "شمارهٔ رول",
   vinylName: "نام فرش و قالین",
@@ -121,6 +127,11 @@ const headers = {
   details: "توضیحات",
 };
 const cell = (row, key) => {
+  if (key === "createdByLabel") return actorText(row);
+  if (key === "updatedByLabel")
+    return row.updatedByName || row.updatedByUsername
+      ? actorText(row, "updatedBy")
+      : "—";
   if (key === "itemDetails")
     return (row.items?.length ? row.items : [row])
       .map(
@@ -161,7 +172,8 @@ export async function exportTable(req, res) {
   const calendar =
     (await Settings.findById("store").lean())?.calendar || "gregory";
   const exportCell = (row, key) =>
-    ["entryDate", "soldDate", "date"].includes(key) && row[key]
+    ["entryDate", "soldDate", "date", "createdAt", "updatedAt"].includes(key) &&
+    row[key]
       ? dateText(row[key], calendar)
       : cell(row, key);
   const cursor =
@@ -175,7 +187,16 @@ export async function exportTable(req, res) {
     "Content-Disposition",
     `attachment; filename="${kind}.${format}"`,
   );
-  const keys = columns[kind];
+  await audit("export.download", kind, undefined, format, undefined, {
+    targetLabel: kind,
+  });
+  const keys = [
+    ...columns[kind],
+    "createdByLabel",
+    "createdAt",
+    "updatedByLabel",
+    "updatedAt",
+  ];
   const values = (item) =>
     kind === "vinyl"
       ? {

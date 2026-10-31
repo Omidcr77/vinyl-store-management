@@ -1,3 +1,4 @@
+import { attributionColumn } from "../components/RecordAttribution";
 import { useState } from "react";
 import { api, query } from "../services/api";
 import { useResource, useStore } from "../services/store";
@@ -81,6 +82,7 @@ export default function Users() {
                 label: "آخرین ورود",
                 render: (r) => date(r.lastLoginAt),
               },
+              attributionColumn,
               {
                 key: "actions",
                 label: "عملیات",

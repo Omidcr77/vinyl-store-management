@@ -77,6 +77,7 @@ export async function reverseSupplierEntry(supplierId, entryId, data, key) {
       if (entry.reversed)
         throw new AppError("این معامله قبلاً لغو شده است.", 409);
       entry.reversed = true;
+      Object.assign(entry, actorFields());
       await entry.save({ session });
       return postSupplierEntry(
         {

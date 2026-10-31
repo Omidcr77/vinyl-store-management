@@ -1,3 +1,4 @@
+import { audit } from "./actor.js";
 import DeletedRecord from "../models/DeletedRecord.js";
 import { renderBill } from "../../shared/bill.js";
 import { chromium } from "playwright";
@@ -61,9 +62,18 @@ export async function documentPdf(req, res) {
     res,
     renderBill({ record, settings, receipt }),
     receipt ? record.receiptNumber : record.billNumber,
+    () =>
+      audit(
+        "document.download",
+        record._id,
+        undefined,
+        receipt ? "receipt PDF" : "sale PDF",
+        undefined,
+        { targetLabel: record.receiptNumber || record.billNumber },
+      ),
   );
 }
-export async function sendDocumentPdf(res, markup, ref) {
+export async function sendDocumentPdf(res, markup, ref, beforeSend) {
   if (active >= 3)
     throw new AppError("ساخت PDF مصروف است. چند لحظه بعد کوشش کنید.", 503);
   active++;
@@ -93,6 +103,7 @@ export async function sendDocumentPdf(res, markup, ref) {
       printBackground: true,
       margin: { top: "12mm", bottom: "12mm", left: "12mm", right: "12mm" },
     });
+    await beforeSend?.();
     res.type("application/pdf").attachment(`${ref}.pdf`).send(buffer);
   } finally {
     try {

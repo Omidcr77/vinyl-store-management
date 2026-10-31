@@ -1,3 +1,4 @@
+import RecordAttribution from "../components/RecordAttribution";
 import { useBulkDelete } from "../components/BulkDelete";
 import { useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
@@ -216,6 +217,7 @@ function Invoice() {
               </Link>
             )}
           </div>
+          <RecordAttribution record={sale} />
           <SaleItems sale={sale} />
           <dl className="detail-grid">
             <div>

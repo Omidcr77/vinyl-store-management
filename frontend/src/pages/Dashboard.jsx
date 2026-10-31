@@ -1,3 +1,4 @@
+import { attributionColumn } from "../components/RecordAttribution";
 import { useAuth } from "../services/auth";
 import { Link } from "react-router-dom";
 import {
@@ -232,6 +233,7 @@ export default function Dashboard() {
             <Table
               rows={data.recentSales}
               columns={[
+                attributionColumn,
                 {
                   key: "billNumber",
                   label: "شمارهٔ بل",

@@ -1,3 +1,4 @@
+import { audit } from "./actor.js";
 import database from "../db/mysql.js";
 import Customer from "../models/Customer.js";
 import Sale from "../models/Sale.js";
@@ -55,5 +56,14 @@ export async function statementPdf(req, res) {
     res,
     renderStatement(data),
     `statement-${data.customer._id}`,
+    () =>
+      audit(
+        "statement.download",
+        data.customer._id,
+        undefined,
+        "customer PDF",
+        undefined,
+        { targetLabel: data.customer.name },
+      ),
   );
 }

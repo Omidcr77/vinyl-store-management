@@ -9,12 +9,13 @@ import { transaction, idempotent } from "./transaction.js";
 import { required, AppError } from "../utils/errors.js";
 export const stockStatus = (length, threshold) =>
   length === 0 ? "sold" : length < threshold ? "low-stock" : "available";
-// Touching settings serializes threshold/currency changes with inventory and sale writes.
+// The revision lock serializes settings and stock writes without changing the
+// timestamp of the last human configuration change.
 export const lockSettings = (session) =>
   Settings.findByIdAndUpdate(
     "store",
     { $inc: { revision: 1 } },
-    { new: true, session },
+    { new: true, session, timestamps: false },
   );
 export async function saveRoll(data, id, key) {
   const work = async (session, requestHash, scopedKey) => {

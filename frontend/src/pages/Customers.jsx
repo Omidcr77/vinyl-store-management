@@ -1,3 +1,4 @@
+import { attributionColumn } from "../components/RecordAttribution";
 import { useBulkDelete } from "../components/BulkDelete";
 import { Photo } from "../components/ImagePicker";
 import { useState } from "react";
@@ -112,6 +113,7 @@ export default function Customers() {
                   </strong>
                 ),
               },
+              attributionColumn,
               {
                 key: "account",
                 label: "حساب",

@@ -34,7 +34,7 @@ export async function priceSave(req, res) {
     required(
       await Customer.findByIdAndUpdate(
         customerId,
-        { $inc: { __v: 1 } },
+        { $inc: { __v: 1 }, $set: actorFields() },
         { new: true, session },
       ),
     );
@@ -67,6 +67,7 @@ export async function priceDelete(req, res) {
       ],
       { session },
     );
+    return record;
   });
   req.app.get("io")?.emit("store:changed");
   res.json({

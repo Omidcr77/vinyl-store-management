@@ -1,3 +1,4 @@
+import { attributionColumn } from "./RecordAttribution";
 import { saleItems } from "../../../shared/sale-items.js";
 import { useStore } from "../services/store";
 import { Modal, Table } from "./UI";
@@ -57,6 +58,7 @@ export default function PrintDocument({
         <Table
           rows={sales}
           columns={[
+            attributionColumn,
             { key: "billNumber", label: "بل" },
             {
               key: "soldDate",
@@ -119,6 +121,7 @@ export default function PrintDocument({
             <Table
               rows={payments}
               columns={[
+                attributionColumn,
                 { key: "date", label: "تاریخ", render: (r) => date(r.date) },
                 {
                   key: "amount",

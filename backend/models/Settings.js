@@ -1,6 +1,8 @@
+import { actorSchema } from "../services/actor.js";
 import database from "../db/mysql.js";
 const schema = new database.Schema(
   {
+    ...actorSchema,
     _id: { type: String, default: "store" },
     storeName: { type: String, default: "فرش و قالین فروشی" },
     storeAddress: { type: String, default: "" },

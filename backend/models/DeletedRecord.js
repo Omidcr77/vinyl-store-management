@@ -1,5 +1,7 @@
+import { actorSchema } from "../services/actor.js";
 import database from "../db/mysql.js";
 const schema = new database.Schema({
+  ...actorSchema,
   kind: { type: String, required: true },
   recordId: { type: database.Schema.Types.ObjectId, required: true },
   idempotencyKey: String,

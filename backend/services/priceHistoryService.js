@@ -1,3 +1,4 @@
+import { attributionKeys } from "../../shared/actors.js";
 import CustomerPrice from "../models/CustomerPrice.js";
 import CustomerPriceHistory from "../models/CustomerPriceHistory.js";
 import Settings from "../models/Settings.js";
@@ -24,7 +25,12 @@ export async function rememberCustomerPrice(customerId, input, session) {
           unitPrice: previous.unitPrice,
           currency,
           source: "previous",
-          ...actorFields(true),
+          createdAt: previous.createdAt,
+          ...Object.fromEntries(
+            attributionKeys
+              .filter((key) => previous[key] !== undefined)
+              .map((key) => [key, previous[key]]),
+          ),
         },
       ],
       { session },
@@ -49,6 +55,8 @@ export async function rememberCustomerPrice(customerId, input, session) {
       $setOnInsert: {
         createdBy: actorFields(true).createdBy,
         createdByName: actorFields(true).createdByName,
+        createdByUsername: actorFields(true).createdByUsername,
+        createdByRole: actorFields(true).createdByRole,
       },
     },
     { upsert: true, new: true, runValidators: true, session },

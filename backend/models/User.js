@@ -1,6 +1,8 @@
+import { actorSchema } from "../services/actor.js";
 import database from "../db/mysql.js";
 const schema = new database.Schema(
   {
+    ...actorSchema,
     username: { type: String, required: true, unique: true },
     name: { type: String, required: true },
     passwordHash: { type: String, required: true, select: false },

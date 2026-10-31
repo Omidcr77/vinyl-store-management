@@ -1,3 +1,5 @@
+import { audit } from "../services/actor.js";
+import { actorText } from "../../shared/actors.js";
 import { lockSettings } from "../services/inventoryService.js";
 import Supplier from "../models/Supplier.js";
 import SupplierEntry from "../models/SupplierEntry.js";
@@ -138,6 +140,7 @@ export async function supplierStatement(req, res) {
     e.deltaMinor < 0 ? e.amount : "",
     e.balanceAfter,
     e.details || "",
+    actorText(e),
   ]);
   const headers = [
     "تاریخ",
@@ -147,10 +150,19 @@ export async function supplierStatement(req, res) {
     "کاهش قرض / افزایش طلب ما",
     "مانده پس از ثبت",
     "توضیحات",
+    "ثبت‌کننده",
   ];
   if (req.query.format === "csv") {
     const cell = (v) =>
       `"${String(/^[=+\-@\t\r\n]/.test(String(v)) ? `'${v}` : v).replaceAll('"', '""')}"`;
+    await audit(
+      "statement.download",
+      supplier._id,
+      undefined,
+      "supplier CSV",
+      undefined,
+      { targetLabel: supplier.name },
+    );
     return res
       .type("text/csv; charset=utf-8")
       .attachment(`supplier-${supplier._id}.csv`)
@@ -160,5 +172,14 @@ export async function supplierStatement(req, res) {
       );
   }
   const markup = `<html lang="fa" dir="rtl"><head><meta charset="utf-8"><style>body{font-family:Vazirmatn,sans-serif;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px;text-align:right}thead{display:table-header-group}tr{break-inside:avoid}</style></head><body><h1>${esc(settings.storeName)}</h1><h2>صورت‌حساب تهیه‌کننده: ${esc(supplier.name)}</h2><p>${esc(supplier.phone)} · ${esc(supplier.currency)}</p><p>مانده فعلی: ${esc(Math.abs(supplier.balance))} — ${supplier.balance >= 0 ? "قرض ما به تهیه‌کننده" : "طلب ما از تهیه‌کننده"}</p><p>ترتیب ثبت معاملات؛ مبلغ مثبت مانده = قرض ما، منفی = طلب ما. معاملات لغوشده با ثبت معکوس محفوظ‌اند.</p><table><thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
-  return sendDocumentPdf(res, markup, `supplier-${supplier._id}`);
+  return sendDocumentPdf(res, markup, `supplier-${supplier._id}`, () =>
+    audit(
+      "statement.download",
+      supplier._id,
+      undefined,
+      "supplier PDF",
+      undefined,
+      { targetLabel: supplier.name },
+    ),
+  );
 }

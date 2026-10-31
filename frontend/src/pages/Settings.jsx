@@ -1,3 +1,4 @@
+import RecordAttribution from "../components/RecordAttribution";
 import BackupSettings from "../components/BackupSettings";
 import { useState } from "react";
 import { Settings2 } from "lucide-react";
@@ -46,6 +47,7 @@ export default function Settings() {
           <div className="form-layout">
             <form className="panel form-panel" onSubmit={submit}>
               <h2>معلومات دکان</h2>
+              <RecordAttribution record={data} />
               <div className="form-grid">
                 <Field
                   label="مدت نشست کاربران (دقیقه)"

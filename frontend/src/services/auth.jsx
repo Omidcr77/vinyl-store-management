@@ -7,11 +7,7 @@ import {
 } from "react";
 import { api, setCsrfToken } from "./api";
 const Context = createContext();
-export const roleLabels = {
-  admin: "مدیر سیستم",
-  manager: "مدیر",
-  staff: "کارمند",
-};
+export { roleLabels } from "../../../shared/actors.js";
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null),
     [loading, setLoading] = useState(true),

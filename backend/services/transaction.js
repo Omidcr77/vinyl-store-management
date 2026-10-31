@@ -8,7 +8,26 @@ export async function transaction(work) {
   return database.connection.transaction(async (session) => {
     const result = await work(session);
     const actor = actorContext.getStore();
-    if (actor?.action) await audit(actor.action, result?._id, session);
+    if (actor?.action) {
+      const target =
+        result?._id || actor.action.match(/([a-f0-9]{24})(?:\/[^/]*)?$/i)?.[1];
+      const targetLabel =
+        result?.billNumber ||
+        result?.receiptNumber ||
+        result?.deliveryNumber ||
+        result?.name ||
+        (result?.rollNumber
+          ? `رول #${result.rollNumber} · ${result.vinylName}`
+          : result?.storeName || result?.type);
+      await audit(
+        actor.action,
+        target,
+        session,
+        result?.count != null ? `تعداد رکوردها: ${result.count}` : undefined,
+        undefined,
+        { targetLabel },
+      );
+    }
     return result;
   });
 }

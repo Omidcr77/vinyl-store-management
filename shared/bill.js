@@ -1,3 +1,4 @@
+import { actorText } from "./actors.js";
 import { saleItems } from "./sale-items.js";
 import { formatDate } from "./calendar.js";
 // Shared, escaped document markup for the preview, browser printing and PDF.
@@ -83,14 +84,14 @@ export function renderStatement({
     .flatMap((r) =>
       saleItems(r).map(
         (item, index) =>
-          `<tr><td><bdi dir="ltr">${esc(r.billNumber)}</bdi><small>${esc(date(r.soldDate))}</small></td><td><strong>${esc(item.vinylName)}</strong><small>رول ${number(item.rollNumber)} · ${esc(item.type)} · ${esc(item.color)}</small><small><bdi dir="ltr">${number(item.soldLength)} × ${number(item.width)}</bdi> متر · ${number(item.area)} متر مربع</small></td><td>${index === 0 ? money(r.totalAmount) : "—"}</td><td>${index === 0 ? money(r.paidAmount) : "—"}${index === 0 && r.creditApplied > 0 ? `<small>از طلب مشتری: ${money(r.creditApplied)}</small>` : ""}</td><td>${index === 0 ? money(r.remainingBalance) : "—"}</td></tr>`,
+          `<tr><td><bdi dir="ltr">${esc(r.billNumber)}</bdi><small>${esc(date(r.soldDate))}</small><small class="statement-actor">${esc(actorText(r))}</small></td><td><strong>${esc(item.vinylName)}</strong><small>رول ${number(item.rollNumber)} · ${esc(item.type)} · ${esc(item.color)}</small><small><bdi dir="ltr">${number(item.soldLength)} × ${number(item.width)}</bdi> متر · ${number(item.area)} متر مربع</small></td><td>${index === 0 ? money(r.totalAmount) : "—"}</td><td>${index === 0 ? money(r.paidAmount) : "—"}${index === 0 && r.creditApplied > 0 ? `<small>از طلب مشتری: ${money(r.creditApplied)}</small>` : ""}</td><td>${index === 0 ? money(r.remainingBalance) : "—"}</td></tr>`,
       ),
     )
     .join("");
   const paymentRows = payments
     .map(
       (r) =>
-        `<tr><td><bdi dir="ltr">${esc(r.receiptNumber || `RCP-${r._id}`)}</bdi><small>${esc(date(r.date))}</small></td><td>${esc({ cash: "نقد", bank: "بانک", other: "سایر" }[r.paymentMethod] || r.paymentMethod)}<small>${esc(r.reference || "")}</small>${r.details ? `<small>${esc(r.details)}</small>` : ""}</td><td>${money(r.amount)}</td></tr>`,
+        `<tr><td><bdi dir="ltr">${esc(r.receiptNumber || `RCP-${r._id}`)}</bdi><small>${esc(date(r.date))}</small><small class="statement-actor">${esc(actorText(r))}</small></td><td>${esc({ cash: "نقد", bank: "بانک", other: "سایر" }[r.paymentMethod] || r.paymentMethod)}<small>${esc(r.reference || "")}</small>${r.details ? `<small>${esc(r.details)}</small>` : ""}</td><td>${money(r.amount)}</td></tr>`,
     )
     .join("");
   return `<style>${billStyles}
@@ -104,22 +105,23 @@ export function renderStatement({
   .bill-sheet .statement-note{font-size:10px;color:#52675d;margin:0 0 12px}
   .bill-sheet .statement-items th,.bill-sheet .statement-items td{padding:7px 5px;font-size:10px}
   .statement-sheet .bill-items small{margin-top:3px;line-height:1.5}
-  .statement-sheet .bill-items{margin-bottom:12px}
+  .statement-sheet .bill-items{margin-bottom:10px}
+  .statement-sheet .bill-items .statement-actor{font-size:9px;line-height:1.4;margin-top:2px}
   .bill-sheet .statement-items td strong{font-size:11px}
   .bill-sheet .statement-empty{padding:10px;background:#f6f8f6;margin-bottom:12px}
   .bill-sheet .statement-summary{margin-top:12px;margin-bottom:8px;break-inside:avoid}
   .statement-sheet .bill-total-line{padding:6px 10px}
   .statement-sheet .bill-footer{margin-top:0;padding-top:8px}
-  .statement-sheet .bill-signatures{padding:16px 8px 10px}
+  .statement-sheet .bill-signatures{padding:12px 8px 8px}
   .statement-sheet .bill-thanks{padding-top:10px}
   @media print{.bill-sheet .statement-items{break-inside:auto}.bill-sheet .statement-items thead{display:table-header-group}}
   </style><article class="bill-sheet statement-sheet" lang="fa-AF" dir="rtl">
     <header class="bill-head"><div class="bill-brand"><h1>${esc(s.storeName || "فرش و قالین فروشی")}</h1>${s.storeAddress ? `<p>${esc(s.storeAddress)}</p>` : ""}${s.phone ? `<p>تماس: <bdi dir="ltr">${esc(s.phone)}</bdi></p>` : ""}</div><div><h2 class="bill-title">صورت‌حساب مشتری</h2><div class="bill-meta"><p>تاریخ تهیه: ${esc(date(generatedAt))}</p><p>دوره: تمام معاملات</p><p>واحد پول: <bdi dir="ltr">${currency}</bdi></p></div></div></header>
     <section class="bill-parties"><div><span class="bill-label">مشخصات مشتری</span><h3 class="bill-customer">${esc(customer.name)}</h3>${customer.phone ? `<p>تماس: <bdi dir="ltr">${esc(customer.phone)}</bdi></p>` : ""}${customer.address ? `<p>${esc(customer.address)}</p>` : ""}</div><span class="bill-status">${summary.balance < 0 ? "طلب مشتری" : summary.balance > 0 ? "دارای باقی‌داری" : "تصفیه‌شده"}</span></section>
     <h3 class="statement-heading">خریدها</h3>
-    ${sales.length ? `<table class="bill-items statement-items"><colgroup><col style="width:21%"><col style="width:31%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup><thead><tr><th>بل / تاریخ</th><th>شرح جنس</th><th>مجموع</th><th>پرداخت هنگام فروش</th><th>باقی‌داری فعلی</th></tr></thead><tbody>${saleRows}</tbody></table>` : `<p class="statement-empty">هنوز خریدی ثبت نشده است.</p>`}
+    ${sales.length ? `<table class="bill-items statement-items"><colgroup><col style="width:25%"><col style="width:27%"><col style="width:16%"><col style="width:16%"><col style="width:16%"></colgroup><thead><tr><th>بل / تاریخ / ثبت‌کننده</th><th>شرح جنس</th><th>مجموع</th><th>پرداخت هنگام فروش</th><th>باقی‌داری فعلی</th></tr></thead><tbody>${saleRows}</tbody></table>` : `<p class="statement-empty">هنوز خریدی ثبت نشده است.</p>`}
     <h3 class="statement-heading">رسیدهای پرداخت</h3><p class="statement-note">پرداخت‌های بعد از فروش؛ پرداخت هنگام فروش در جدول خریدها آمده است.</p>
-    ${payments.length ? `<table class="bill-items statement-items"><colgroup><col style="width:32%"><col style="width:43%"><col style="width:25%"></colgroup><thead><tr><th>رسید / تاریخ</th><th>روش پرداخت / توضیحات</th><th>مبلغ</th></tr></thead><tbody>${paymentRows}</tbody></table>` : `<p class="statement-empty">پرداخت جداگانه‌ای ثبت نشده است.</p>`}
+    ${payments.length ? `<table class="bill-items statement-items"><colgroup><col style="width:32%"><col style="width:43%"><col style="width:25%"></colgroup><thead><tr><th>رسید / تاریخ / ثبت‌کننده</th><th>روش پرداخت / توضیحات</th><th>مبلغ</th></tr></thead><tbody>${paymentRows}</tbody></table>` : `<p class="statement-empty">پرداخت جداگانه‌ای ثبت نشده است.</p>`}
     <div class="bill-bottom statement-summary"><div class="bill-note"><span class="bill-label">خلاصهٔ حساب</span><p>این صورت‌حساب شامل تمام خریدها و پرداخت‌های ثبت‌شده تا تاریخ تهیه است.</p><p>مجموع پرداخت‌ها شامل پرداخت هنگام فروش و رسیدهای بعدی است.</p></div><div class="bill-totals">${totalLine("مجموع خریدها", summary.totalPurchases, true)}${totalLine("پرداخت هنگام فروش", summary.initialPaid)}${totalLine("پرداخت‌های بعدی", summary.receiptPaid)}${totalLine("مجموع پرداخت‌ها", summary.totalPayments)}${totalLine(summary.balance < 0 ? "طلب مشتری" : "باقی‌داری فعلی", Math.abs(summary.balance), true)}</div></div>
     <footer class="bill-footer"><div class="bill-signatures"><span>امضای مشتری</span><span>امضا و مهر فروشنده</span></div><p class="bill-thanks">${esc(footer)}</p><p class="bill-issued">صورت‌حساب تهیه‌شده در ${esc(date(generatedAt))}</p></footer>
   </article>`;
@@ -193,6 +195,6 @@ export function renderBill({
     <section class="bill-parties"><div><span class="bill-label">مشخصات مشتری</span><h3 class="bill-customer">${esc(name)}</h3>${r.customerPhone ? `<p>تماس: <bdi dir="ltr">${esc(r.customerPhone)}</bdi></p>` : ""}${r.customerAddress ? `<p>${esc(r.customerAddress)}</p>` : ""}</div><span class="bill-status">${receipt ? "دریافت شد" : r.remainingBalance > 0 ? "دارای باقی‌داری" : "تصفیه‌شده"}</span></section>
     <table class="bill-items">${items}</table>
     <div class="bill-bottom"><div class="bill-note"><span class="bill-label">${receipt ? "معلومات پرداخت" : "یادداشت"}</span>${receipt ? `<p>روش پرداخت: ${esc({ cash: "نقد", bank: "بانک", other: "سایر" }[r.paymentMethod] || r.paymentMethod)}</p><p>مرجع: ${esc(r.reference || "—")}</p>` : ""}<p>${esc((receipt ? r.details : r.notes) || "—")}</p></div><div class="bill-totals">${totals}</div></div>
-    <footer class="bill-footer"><div class="bill-signatures"><span>امضای مشتری</span><span>امضا و مهر فروشنده</span></div><p class="bill-thanks">${esc(footer)}</p><p class="bill-issued">ثبت‌کننده: ${esc(r.createdByName || "رکورد قبلی")} · ${receipt ? "تاریخ تهیهٔ رسید" : "وضعیت پرداخت تا تاریخ"}: ${esc(date(generatedAt))}</p></footer>
+    <footer class="bill-footer"><div class="bill-signatures"><span>امضای مشتری</span><span>امضا و مهر فروشنده</span></div><p class="bill-thanks">${esc(footer)}</p><p class="bill-issued">ثبت‌کننده: ${esc(actorText(r))} · ${receipt ? "تاریخ تهیهٔ رسید" : "وضعیت پرداخت تا تاریخ"}: ${esc(date(generatedAt))}</p></footer>
   </article>`;
 }

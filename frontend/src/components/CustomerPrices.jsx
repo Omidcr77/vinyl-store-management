@@ -1,3 +1,4 @@
+import { attributionColumn } from "./RecordAttribution";
 import { useState } from "react";
 import DeleteIcon from "./DeleteIcon";
 import { api, query } from "../services/api";
@@ -93,6 +94,7 @@ export default function CustomerPrices({ customerId }) {
               label: "نرخ مشتری",
               render: (r) => money(r.unitPrice),
             },
+            attributionColumn,
             {
               key: "actions",
               label: "عملیات",
@@ -156,6 +158,7 @@ export default function CustomerPrices({ customerId }) {
                   }[r.source],
           },
           { key: "billNumber", label: "شمارهٔ بل" },
+          attributionColumn,
         ]}
       />
       <Pagination data={history.data} onChange={setHistoryPage} />

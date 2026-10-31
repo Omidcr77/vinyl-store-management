@@ -193,10 +193,10 @@ export const settingsSave = async (req, res) => {
     if (input.currency !== settings.currency)
       await Supplier.updateMany(
         {},
-        { $set: { currency: input.currency } },
+        { $set: { currency: input.currency, ...actorFields() } },
         { session },
       );
-    Object.assign(settings, input);
+    Object.assign(settings, input, actorFields());
     settings.revision += 1;
     await settings.save({ session });
     await VinylRoll.updateMany(
@@ -204,6 +204,7 @@ export const settingsSave = async (req, res) => {
       [
         {
           $set: {
+            ...actorFields(),
             status: {
               $switch: {
                 branches: [

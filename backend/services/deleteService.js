@@ -27,7 +27,14 @@ export async function deleteRecords(kind, input) {
         customer.archived = true;
         Object.assign(customer, actorFields());
         await customer.save({ session });
-        await audit("customer.delete", customerId, session, customer.name);
+        await audit(
+          "customer.delete",
+          customerId,
+          session,
+          customer.name,
+          undefined,
+          { targetLabel: customer.name },
+        );
       }
     } else if (kind === "vinyl") {
       for (const rollId of ids) {
@@ -91,6 +98,7 @@ export async function deleteRecords(kind, input) {
         await DeletedRecord.create(
           [
             {
+              ...actorFields(true),
               kind: "Sale",
               recordId: sale._id,
               idempotencyKey: sale.idempotencyKey,
@@ -101,11 +109,18 @@ export async function deleteRecords(kind, input) {
         );
         await CustomerPriceHistory.updateMany(
           { saleId: sale._id },
-          { $set: { voided: true } },
+          { $set: { voided: true, ...actorFields() } },
           { session },
         );
         await Sale.deleteOne({ _id: sale._id }).session(session);
-        await audit("sale.delete", sale._id, session, sale.billNumber);
+        await audit(
+          "sale.delete",
+          sale._id,
+          session,
+          sale.billNumber,
+          undefined,
+          { targetLabel: sale.billNumber },
+        );
       }
       for (const [customerId, change] of customers) {
         const customer = required(

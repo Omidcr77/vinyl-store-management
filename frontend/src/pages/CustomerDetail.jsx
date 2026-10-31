@@ -1,3 +1,6 @@
+import RecordAttribution, {
+  attributionColumn,
+} from "../components/RecordAttribution";
 import { useAuth } from "../services/auth";
 import DeleteIcon from "../components/DeleteIcon";
 import { ReceiptPrint } from "../components/RecordPrint";
@@ -112,9 +115,7 @@ export default function CustomerDetail() {
               این مشتری از فهرست فعال حذف شده است. حساب و رسیدهای او محفوظ است.
             </p>
           )}
-          <p className="small muted">
-            ثبت‌کننده: {data.customer.createdByName || "رکورد قبلی"}
-          </p>
+          <RecordAttribution record={data.customer} />
           {data.customer.img && (
             <Photo src={data.customer.img} name={data.customer.name} large />
           )}
@@ -180,6 +181,7 @@ export default function CustomerDetail() {
                 { key: "paymentMethod", label: "روش" },
                 { key: "reference", label: "مرجع" },
                 { key: "details", label: "توضیحات" },
+                attributionColumn,
               ]}
             />
             <Pagination data={data.receipts} onChange={setPaymentPage} />

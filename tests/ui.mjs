@@ -177,6 +177,12 @@ try {
   await page.getByRole("button", { name: "ذخیرهٔ کاربر", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.getByText("فرید احمدی", { exact: true }).waitFor();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "فرید احمدی" })
+    .locator(".record-attribution")
+    .getByText("UI Admin", { exact: true })
+    .waitFor();
   const staffPage = await browser.newPage();
   await staffPage.context().addCookies(siteCookies);
   staffPage.on("pageerror", (e) => errors.push(e.message));
@@ -215,6 +221,22 @@ try {
   await staffPage.close();
   await page.goto(`${base}/audit`);
   await page.getByText("UI Admin", { exact: true }).first().waitFor();
+  await page.getByLabel("جستجوی کاربر یا رکورد").fill("browserstaff");
+  await page.getByLabel("نقش هنگام عملیات").selectOption("staff");
+  await page.getByLabel("بخش", { exact: true }).selectOption("auth");
+  await page
+    .locator("tbody tr")
+    .filter({ hasText: "@browserstaff" })
+    .first()
+    .waitFor();
+  assert.ok((await page.locator("tbody").innerText()).includes("کارمند"));
+  await page.screenshot({
+    path: "test-results/activity-attribution.png",
+    fullPage: true,
+  });
+  console.log(
+    "PASS: activity history filters show the actor and role at the time",
+  );
   console.log(
     "PASS: admin user creation, direct login, staff permissions, audit and live deactivation",
   );
@@ -266,7 +288,13 @@ try {
   await page.getByAltText("عکس انتخاب‌شده").waitFor();
   await page.getByRole("button", { name: "ذخیرهٔ مشتری" }).click();
   await page.getByText("احمدشاه صافی", { exact: true }).waitFor();
-  console.log("PASS: customer creation");
+  await page
+    .locator(".record-attribution")
+    .getByText("UI Admin", { exact: true })
+    .first()
+    .waitFor();
+  assert.equal((await api("/customers")).items[0].createdByRole, "admin");
+  console.log("PASS: customer creation with account attribution");
   const removable = await api("/customers", {
     name: "Delete browser customer",
     phone: "0701111111",
@@ -327,7 +355,13 @@ try {
   await page.getByAltText("قالین پامیر", { exact: true }).waitFor();
   assert.equal((await api("/settings")).currency, "AFN");
   assert.equal((await api("/settings")).storeName, "شرکت بازرگانی قالین پامیر");
-  console.log("PASS: inventory creation");
+  await page
+    .locator(".record-attribution")
+    .getByText("UI Admin", { exact: true })
+    .first()
+    .waitFor();
+  assert.equal(roll.createdByUsername, "uiadmin");
+  console.log("PASS: inventory creation with account attribution");
   await page.goto(`${base}/sales`);
   await page.getByRole("button", { name: "فروش جدید", exact: true }).click();
   await page.getByRole("dialog").waitFor();

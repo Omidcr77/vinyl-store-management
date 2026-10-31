@@ -1,3 +1,6 @@
+import RecordAttribution, {
+  attributionColumn,
+} from "../components/RecordAttribution";
 import { useBulkDelete } from "../components/BulkDelete";
 import { useAuth } from "../services/auth";
 import { Photo } from "../components/ImagePicker";
@@ -216,6 +219,7 @@ export default function Inventory() {
                 render: (r) =>
                   r.sellingPrice != null ? money(r.sellingPrice) : "—",
               },
+              attributionColumn,
               {
                 key: "actions",
                 label: "عملیات",
@@ -311,7 +315,7 @@ export default function Inventory() {
                         : money(view.landedCostPerMeter),
                   }
                 : {}),
-              ثبت‌کننده: view.createdByName || "رکورد قبلی",
+              "مسؤول رکورد": <RecordAttribution record={view} />,
               "نرخ پیشنهادی / متر طولی":
                 view.sellingPrice == null ? "—" : money(view.sellingPrice),
               توضیحات: view.details || "—",

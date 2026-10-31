@@ -1,3 +1,4 @@
+import RecordAttribution, { attributionColumn } from "./RecordAttribution";
 import { useState } from "react";
 import { SalePrint } from "./RecordPrint";
 import { Link } from "react-router-dom";
@@ -111,6 +112,7 @@ export default function SaleTable({
                 },
               ]
             : []),
+          attributionColumn,
           ...actionColumns,
         ]}
       />

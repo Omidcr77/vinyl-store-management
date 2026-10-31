@@ -28,6 +28,8 @@ export async function migratePriceHistory(session) {
               updatedAt: sale.createdAt || sale.soldDate,
               createdBy: sale.createdBy,
               createdByName: sale.createdByName,
+              createdByUsername: sale.createdByUsername,
+              createdByRole: sale.createdByRole,
               voided: false,
             },
           },

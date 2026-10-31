@@ -689,6 +689,26 @@ export function model(name, schema) {
       await pool.query(
         `CREATE TABLE IF NOT EXISTS ${quote(table)} (${definitions.join(",")}) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin`,
       );
+      // Existing installations receive only additive nullable schema changes.
+      // Do not invent historical values or silently relax required constraints.
+      const [columns] = await pool.query(`SHOW COLUMNS FROM ${quote(table)}`);
+      const existingColumns = new Set(columns.map((column) => column.Field));
+      const missing = Object.entries(schema.fields).filter(
+        ([key]) => !existingColumns.has(key),
+      );
+      if (missing.some(([, field]) => field.required))
+        throw new Error(
+          `Table ${table} requires an explicit migration for a required field.`,
+        );
+      if (missing.length) {
+        try {
+          await pool.query(
+            `ALTER TABLE ${quote(table)} ${missing.map(([key, field]) => `ADD COLUMN ${quote(key)} ${sqlType([key, field])} NULL`).join(",")}`,
+          );
+        } catch (error) {
+          if (error.code !== "ER_DUP_FIELDNAME") throw error;
+        }
+      }
       return Model;
     }
     static find(filter = {}) {

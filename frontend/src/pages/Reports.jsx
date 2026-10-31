@@ -1,3 +1,4 @@
+import { attributionColumn } from "../components/RecordAttribution";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Printer } from "lucide-react";
@@ -193,6 +194,7 @@ export default function Reports() {
               <Table
                 rows={data.items}
                 columns={[
+                  attributionColumn,
                   { key: "rollNumber", label: "شمارهٔ رول" },
                   { key: "vinylName", label: "نام فرش و قالین" },
                   {
@@ -224,6 +226,7 @@ export default function Reports() {
               <Table
                 rows={data.items}
                 columns={[
+                  attributionColumn,
                   {
                     key: "name",
                     label: "مشتری",

@@ -39,7 +39,7 @@ export async function createSale(data, key) {
         ? required(
             await Customer.findOneAndUpdate(
               { _id: data.customerId, archived: { $ne: true } },
-              { $inc: { __v: 1 } },
+              { $inc: { __v: 1 }, $set: actorFields() },
               { new: true, session },
             ),
             "مشتری یافت نشد.",
@@ -87,6 +87,7 @@ export async function createSale(data, key) {
             $set: {
               length,
               status: stockStatus(length, settings.lowStockThreshold),
+              ...actorFields(),
             },
           },
           { session },
@@ -155,7 +156,7 @@ export async function createSale(data, key) {
           throw new AppError("باقی‌داری مشتری از حد مجاز بیشتر شده است.");
         await Customer.updateOne(
           { _id: customer._id },
-          { $inc: { balanceMinor: minor(unpaid) } },
+          { $inc: { balanceMinor: minor(unpaid) }, $set: actorFields() },
           { session },
         );
       }

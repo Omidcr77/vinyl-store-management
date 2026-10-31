@@ -16,10 +16,11 @@ import {
   sessionToken,
   tokenHash,
 } from "../services/authService.js";
-import { audit } from "../services/actor.js";
+import { audit, actorFields } from "../services/actor.js";
 import { AppError, required } from "../utils/errors.js";
 import { id } from "../utils/validation.js";
-import { list } from "../utils/query.js";
+import { list, regex, dateRange } from "../utils/query.js";
+import { auditResources } from "../../shared/actors.js";
 const router = Router();
 const send = (res, data, status = 200) =>
   res.status(status).json({ success: true, data });
@@ -69,7 +70,11 @@ router.post("/login", async (req, res) => {
   if (!valid || !user?.active)
     throw new AppError("نام کاربری یا رمز عبور درست نیست.", 401);
   user.lastLoginAt = new Date();
-  await user.save();
+  await User.updateOne(
+    { _id: user._id },
+    { $set: { lastLoginAt: user.lastLoginAt } },
+    { timestamps: false },
+  );
   const previous = sessionToken(req);
   if (previous) {
     await LoginSession.deleteOne({ _id: tokenHash(previous) });
@@ -87,7 +92,12 @@ router.get("/session", (req, res) =>
   send(res, { user: publicUser(req.user), csrf: req.loginSession.csrf }),
 );
 router.post("/logout", async (req, res) => {
-  await LoginSession.deleteOne({ _id: req.loginSession._id });
+  await database.connection.transaction(async (session) => {
+    await LoginSession.deleteOne({ _id: req.loginSession._id }, { session });
+    await audit("auth.logout", req.user._id, session, undefined, req.user, {
+      targetLabel: req.user.username,
+    });
+  });
   req.app
     .get("io")
     ?.in(`session:${req.loginSession._id}`)
@@ -120,6 +130,7 @@ router.post("/password", async (req, res) => {
     user.passwordHash = encoded;
     user.mustChangePassword = false;
     user.authVersion++;
+    Object.assign(user, actorFields());
     await user.save({ session });
     await audit("auth.password", user._id, session);
   });
@@ -146,6 +157,7 @@ usersRouter.post("/", async (req, res) => {
     const [created] = await User.create(
       [
         {
+          ...actorFields(true),
           username: input.username,
           name: input.name,
           role: input.role,
@@ -203,7 +215,7 @@ usersRouter.put("/:id", async (req, res) => {
         409,
       );
     const old = `${u.username}: ${u.role}, ${u.active}`;
-    Object.assign(u, {
+    Object.assign(u, actorFields(), {
       username: input.username,
       name: input.name,
       role: input.role,
@@ -228,6 +240,33 @@ usersRouter.put("/:id", async (req, res) => {
 });
 export const auditRouter = Router();
 auditRouter.use(allowRoles("admin"));
-auditRouter.get("/", async (req, res) =>
-  send(res, await list(AuditEvent, {}, req.query, ["date"])),
-);
+auditRouter.get("/", async (req, res) => {
+  const query = z
+    .object({
+      search: z.string().trim().max(200).optional(),
+      role: z.enum(["admin", "manager", "staff"]).optional(),
+      resource: z.enum(Object.keys(auditResources)).optional(),
+      from: z.string().optional(),
+      to: z.string().optional(),
+    })
+    .parse(
+      Object.fromEntries(
+        Object.entries(req.query).filter(([, value]) => value !== ""),
+      ),
+    );
+  const filter = {};
+  if (query.search)
+    filter.$or = [
+      "actorName",
+      "actorUsername",
+      "target",
+      "targetLabel",
+      "details",
+    ].map((key) => ({ [key]: regex(query.search) }));
+  if (query.role) filter.actorRole = query.role;
+  if (query.resource)
+    filter.action = new RegExp(auditResources[query.resource].pattern);
+  const range = dateRange(query.from, query.to);
+  if (range) filter.date = range;
+  send(res, await list(AuditEvent, filter, req.query, ["date"]));
+});

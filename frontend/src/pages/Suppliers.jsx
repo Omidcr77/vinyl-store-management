@@ -1,3 +1,4 @@
+import { attributionColumn } from "../components/RecordAttribution";
 import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, authFetch, query } from "../services/api";
@@ -146,6 +147,7 @@ export default function Suppliers() {
                 render: (r) =>
                   `${money(Math.abs(r.balance), r.currency)} · ${r.balance > 0 ? "قرض ما" : r.balance < 0 ? "طلب ما" : "تسویه"}`,
               },
+              attributionColumn,
               {
                 key: "actions",
                 label: "عملیات",
@@ -381,6 +383,7 @@ export function SupplierDetail() {
               render: (r) => money(r.balanceAfter, r.currency),
             },
             { key: "details", label: "توضیحات" },
+            attributionColumn,
             {
               key: "actions",
               label: "عملیات",
