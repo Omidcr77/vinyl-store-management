@@ -29,7 +29,12 @@ export function StoreProvider({ children }) {
       .catch(() => {});
   }, [version]);
   useEffect(() => {
-    const socket = io({ withCredentials: true });
+    const socket = io({
+      withCredentials: true,
+      ...(import.meta.env.VITE_SOCKET_TRANSPORT === "polling"
+        ? { transports: ["polling"], upgrade: false }
+        : {}),
+    });
     socket.on("auth:revoked", clear);
     socket.on("connect_error", (e) => {
       if (e.message === "UNAUTHORIZED") reload();

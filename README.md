@@ -338,3 +338,7 @@ The last dependency audit reported two moderate findings in ExcelJS's transitive
 ## Reference
 
 The [VinylRecords repository](https://github.com/Omidcr77/VinylRecords) informed the domain fields and store workflow. The new implementation retains recognizable names but replaces whole-roll deletion, renumbering, disconnected balances and static dashboard figures. See [the design notes](docs/design.md) for the review and relationships.
+
+## Netlify frontend with the local backend
+
+See [Netlify and MikroTik deployment](backend/deploy/NETLIFY.md) for HTTPS API proxying, login cookies, HTTP polling for live updates, an outbound tunnel, and optional dedicated TCP 9444 NAT rules that preserve the existing CONNECT service. Use `npm run build:netlify` with a `PUBLIC_BACKEND_URL` build setting; account tokens and database credentials never belong in the frontend.

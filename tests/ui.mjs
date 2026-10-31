@@ -22,7 +22,8 @@ process.env.TZ = "Asia/Kabul";
 const testHost = process.env.UI_TEST_HOST || "127.0.0.1";
 const apiPort = Number(process.env.UI_TEST_API_PORT || 5002);
 const apiBase = `http://127.0.0.1:${apiPort}`;
-process.env.CLIENT_URL = `http://${testHost}:5174`;
+process.env.CLIENT_URL =
+  process.env.UI_TEST_FRONTEND_URL || `http://${testHost}:5174`;
 let db, server, io, vite, browser;
 let uploadDir, authCookie, csrfToken;
 let logs = "";
@@ -60,7 +61,7 @@ try {
   await connectDB(db.getUri("ui_tests"));
   const app = createApp();
   server = createServer(app);
-  io = new Server(server, { cors: { origin: base } });
+  io = new Server(server, { cors: { origin: base }, pingInterval: 15000 });
   app.set("io", io);
   protectSockets(io, [base]);
   await User.create({
@@ -93,35 +94,42 @@ try {
     },
     "PUT",
   );
-  vite = spawn(
-    process.execPath,
-    [
-      resolve("node_modules/vite/bin/vite.js"),
-      "--host",
-      testHost,
-      "--port",
-      "5174",
-      "--strictPort",
-    ],
-    {
-      cwd: resolve("frontend"),
-      env: { ...process.env, VITE_API_TARGET: apiBase },
-      windowsHide: true,
-      stdio: "pipe",
-    },
-  );
-  vite.stdout.on("data", (d) => {
-    logs += d;
-  });
-  vite.stderr.on("data", (d) => {
-    logs += d;
-  });
-  vite.on("exit", (code, signal) => {
-    if (code) console.error("Vite exited:", code, signal, logs.slice(-5000));
-  });
+  if (!process.env.UI_TEST_FRONTEND_URL) {
+    vite = spawn(
+      process.execPath,
+      [
+        resolve("node_modules/vite/bin/vite.js"),
+        "--host",
+        testHost,
+        "--port",
+        "5174",
+        "--strictPort",
+      ],
+      {
+        cwd: resolve("frontend"),
+        env: { ...process.env, VITE_API_TARGET: apiBase },
+        windowsHide: true,
+        stdio: "pipe",
+      },
+    );
+    vite.stdout.on("data", (d) => {
+      logs += d;
+    });
+    vite.stderr.on("data", (d) => {
+      logs += d;
+    });
+    vite.on("exit", (code, signal) => {
+      if (code) console.error("Vite exited:", code, signal, logs.slice(-5000));
+    });
+  }
   for (let i = 0; i < 120; i++) {
     try {
-      if ((await fetch(base)).ok) break;
+      const response = await fetch(base);
+      if (
+        response.ok ||
+        (process.env.UI_TEST_SITE_PASSWORD && response.status === 401)
+      )
+        break;
     } catch {}
     if (i === 119) throw new Error("Vite failed to start: " + logs);
     await new Promise((r) => setTimeout(r, 500));
@@ -139,6 +147,19 @@ try {
     console.error("Failed request:", r.url(), r.failure()?.errorText),
   );
   await page.goto(base);
+  if (
+    process.env.UI_TEST_SITE_PASSWORD &&
+    (await page.title()) === "Password Protection"
+  ) {
+    await page
+      .locator('input[name="password"]')
+      .fill(process.env.UI_TEST_SITE_PASSWORD);
+    await page.getByRole("button", { name: "Submit", exact: true }).click();
+  }
+  const siteCookies = (await page.context().cookies()).filter(
+    (cookie) =>
+      cookie.name !== "store_session" && cookie.name !== "__Host-store_session",
+  );
   await page.locator('input[name="username"]').waitFor();
   await page.screenshot({ path: "test-results/login-desktop.png" });
   await page.getByLabel("نام کاربری", { exact: true }).fill("uiadmin");
@@ -157,6 +178,7 @@ try {
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.getByText("فرید احمدی", { exact: true }).waitFor();
   const staffPage = await browser.newPage();
+  await staffPage.context().addCookies(siteCookies);
   staffPage.on("pageerror", (e) => errors.push(e.message));
   await staffPage.goto(base);
   await staffPage
@@ -215,8 +237,8 @@ try {
       m.type() === "error" &&
       !(
         restoringBackup &&
-        (m.text().includes("401 (Unauthorized)") ||
-          m.text().includes("503 (Service Unavailable)"))
+        // HTTP/2 responses may omit the HTTP/1 reason phrase.
+        /server responded with a status of (401|503)\s*\(/.test(m.text())
       )
     )
       errors.push(m.text());

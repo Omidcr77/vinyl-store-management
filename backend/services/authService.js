@@ -96,7 +96,11 @@ export function sessionToken(req) {
 export function cookie(res, token, expires) {
   res.cookie(cookieName(), token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // HTTPS proxies forward this header. It can only strengthen cookie security;
+    // production mode always requires Secure, including when the header is absent.
+    secure:
+      process.env.NODE_ENV === "production" ||
+      res.req?.get?.("x-forwarded-proto")?.split(",")[0].trim() === "https",
     sameSite: "strict",
     path: "/",
     expires,

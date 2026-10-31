@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { allowedOrigins } from "./config/origins.js";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import database from "./db/mysql.js";
@@ -11,19 +12,15 @@ try {
   await connectDB(process.env.MYSQL_URL);
   const app = createApp(),
     server = createServer(app);
+  const origins = allowedOrigins();
   const io = new Server(server, {
-    cors: {
-      origin: [
-        process.env.CLIENT_URL || "http://localhost:5173",
-        "http://127.0.0.1:5173",
-      ],
-    },
+    cors: { origin: origins, credentials: true },
+    // Leave headroom below Netlify's proxy timeout for HTTP long polling.
+    pingInterval: 15000,
+    pingTimeout: 20000,
   });
   app.set("io", io);
-  protectSockets(io, [
-    process.env.CLIENT_URL || "http://localhost:5173",
-    "http://127.0.0.1:5173",
-  ]);
+  protectSockets(io, origins);
   server.listen(
     Number(process.env.PORT || 5000),
     process.env.HOST || "127.0.0.1",

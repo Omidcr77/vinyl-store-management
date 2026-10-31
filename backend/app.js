@@ -1,3 +1,4 @@
+import { allowedOrigins } from "./config/origins.js";
 import backupRoutes from "./routes/backup.js";
 import { maintenanceGate } from "./services/maintenanceService.js";
 import express from "express";
@@ -10,10 +11,11 @@ import { requireAuth, csrf, staffPrivacy } from "./middleware/auth.js";
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
-  const origins = [
-    process.env.CLIENT_URL || "http://localhost:5173",
-    "http://127.0.0.1:5173",
-  ];
+  const origins = allowedOrigins();
+  app.use("/api", (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
   app.use(cors({ origin: origins, credentials: true }));
   app.use((req, res, next) => {
     if (req.get("origin") && !origins.includes(req.get("origin")))

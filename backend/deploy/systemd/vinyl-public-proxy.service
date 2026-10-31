@@ -1,0 +1,16 @@
+[Unit]
+Description=Vinyl Store public API gateway
+After=vinyl-api.service
+Wants=vinyl-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/omid/projects/vinyl-store-management
+EnvironmentFile=/home/omid/projects/vinyl-store-management/.data/public-api.env
+ExecStart=/usr/bin/node scripts/public-api-proxy.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

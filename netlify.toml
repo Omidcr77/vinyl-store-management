@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build:netlify"
+  publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+# Set PUBLIC_BACKEND_URL in Netlify's build environment to a public HTTPS origin.
+# scripts/build-netlify.mjs generates API/socket proxy rules before the SPA fallback.
