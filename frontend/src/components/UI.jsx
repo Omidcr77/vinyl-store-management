@@ -15,7 +15,7 @@ import { download } from "../services/api";
 import { number, paymentMethod, customerName } from "../utils/format";
 import { useAuth } from "../services/auth";
 export function PageHeading({
-  eyebrow = "دکان شما در یک نگاه",
+  eyebrow,
   title,
   description,
   children,
@@ -23,7 +23,7 @@ export function PageHeading({
   return (
     <div className="page-heading">
       <div>
-        <div className="eyebrow">{eyebrow}</div>
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
