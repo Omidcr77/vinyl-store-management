@@ -21,7 +21,7 @@ if (mode === "verify") {
   let ready = false;
   for (let i = 0; i < 40; i++) {
     try {
-      const response = await fetch("http://127.0.0.1:5173/api/health", {
+      const response = await fetch(`${process.env.SERVICE_FRONTEND_URL || "http://10.30.5.10:5173"}/api/health`, {
         signal: AbortSignal.timeout(1500),
       });
       if (response.ok && (await response.json()).data?.status === "ok") {

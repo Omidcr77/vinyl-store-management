@@ -18,8 +18,8 @@ loginctl show-user omid -p Linger
 
 - MySQL-compatible MariaDB: `127.0.0.1:3306`, `.data/mysql`, Unix socket `.data/mysql/mysql.sock`. The database runs as omid; no system-wide database service is required.
 - API: reads `backend/.env` (currently `127.0.0.1:5001`, existing public `CLIENT_URL`).
-- Local fallback frontend: `127.0.0.1:5173`, proxies API and sockets to port 5001. Public access uses Netlify and the HTTPS tunnel.
-- Older MikroTik HTTP forwards to ports 5173/5001 no longer reach these loopback-only listeners. Disable the obsolete rules as described in [NETLIFY.md](NETLIFY.md).
+- Network frontend: `10.30.5.10:5173`, available at `http://10.30.5.10:5173` on the current LAN. It proxies API and sockets to the loopback API on port 5001. The LAN origin is explicitly allowlisted; private filesystem paths remain blocked. Netlify publishing is paused by user instruction; local and GitHub updates are the current workflow.
+- The frontend now accepts routed traffic, including any enabled MikroTik forwards to port 5173. The API remains loopback-only. Existing public deployment notes and optional NAT rule removal are documented in [NETLIFY.md](NETLIFY.md).
 - Each service restarts automatically after an unexpected exit. A normal database stop has up to 120 seconds to flush. Existing data is retained; no seed/reset runs.
 
 ```sh

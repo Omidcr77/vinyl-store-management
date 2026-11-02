@@ -139,7 +139,7 @@ Existing MySQL installations add nullable attribution columns on startup, withou
 
 For an explicitly named first administrator, `npm run admin:create -- --file <path>` accepts a local JSON file containing `username`, `name` and `password` (12–128 characters). Keep that file outside Git and remove it after setup. The normal generated-password command requires no file preparation.
 
-- Frontend: port **5173**.
+- Installed frontend service: **10.30.5.10:5173**, accessible at `http://10.30.5.10:5173` from a routed LAN. The API stays on localhost; REST and sockets use the frontend proxy. Manual `npm run dev` retains the localhost default; the frontend also has an explicit `dev:lan` script for this server.
 - Backend: http://127.0.0.1:5000.
 - Health: http://127.0.0.1:5000/api/health.
 
