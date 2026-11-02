@@ -243,6 +243,19 @@ try {
   }
   await page.goto(base + "/inventory");
   await page.setViewportSize({ width: 390, height: 844 });
+  const attribution = page
+    .locator(".responsive-records .record-attribution")
+    .first();
+  assert.equal(
+    await attribution.locator(".record-username").innerText(),
+    "@farid.ahmadi",
+  );
+  assert.equal(await attribution.locator(".record-date").isVisible(), true);
+  assert.ok(!(await attribution.innerText()).includes("فرید احمدی"));
+  assert.equal(
+    await attribution.locator(".attribution-label,.actor-identity").count(),
+    0,
+  );
   const extra = page
     .locator('.responsive-records td[data-column="type"]')
     .first();

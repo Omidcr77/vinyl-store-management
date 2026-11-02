@@ -18,38 +18,23 @@ export function ActorIdentity({ name, username, role }) {
     </span>
   );
 }
-export default function RecordAttribution({ record, showUpdated = true }) {
+export default function RecordAttribution({ record }) {
   const { date } = useStore();
-  const edited =
-    showUpdated &&
-    record.updatedBy &&
-    (String(record.updatedBy) !== String(record.createdBy) ||
-      record.updatedByName !== record.createdByName ||
-      new Date(record.updatedAt) > new Date(record.createdAt));
-  const line = (prefix, time, label) => (
-    <div className="attribution-event">
-      <small className="attribution-label">{label}</small>
-      <ActorIdentity
-        name={record[prefix + "Name"]}
-        username={record[prefix + "Username"]}
-        role={record[prefix + "Role"]}
-      />
-      {time && (
-        <time className="cell-sub" dateTime={time}>
-          {date(time, { hour: "2-digit", minute: "2-digit" })}
-        </time>
-      )}
-    </div>
-  );
   return (
     <div className="record-attribution">
-      {line("createdBy", record.createdAt, "ثبت‌کننده")}
-      {edited && line("updatedBy", record.updatedAt, "آخرین تغییر")}
+      <bdi dir="ltr" className="record-username">
+        {record.createdByUsername ? `@${record.createdByUsername}` : "—"}
+      </bdi>
+      {record.createdAt && (
+        <time className="record-date" dateTime={record.createdAt}>
+          {date(record.createdAt, { hour: "2-digit", minute: "2-digit" })}
+        </time>
+      )}
     </div>
   );
 }
 export const attributionColumn = {
   key: "attribution",
-  label: "ثبت‌کننده / آخرین تغییر",
+  label: "نام کاربری / تاریخ",
   render: (record) => <RecordAttribution record={record} />,
 };

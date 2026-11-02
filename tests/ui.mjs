@@ -181,7 +181,7 @@ try {
     .getByRole("row")
     .filter({ hasText: "فرید احمدی" })
     .locator(".record-attribution")
-    .getByText("UI Admin", { exact: true })
+    .getByText("@uiadmin", { exact: true })
     .waitFor();
   const staffPage = await browser.newPage();
   await staffPage.context().addCookies(siteCookies);
@@ -313,7 +313,7 @@ try {
   await page.getByText("احمدشاه صافی", { exact: true }).waitFor();
   await page
     .locator(".record-attribution")
-    .getByText("UI Admin", { exact: true })
+    .getByText("@uiadmin", { exact: true })
     .first()
     .waitFor();
   assert.equal((await api("/customers")).items[0].createdByRole, "admin");
@@ -380,7 +380,7 @@ try {
   assert.equal((await api("/settings")).storeName, "شرکت بازرگانی قالین پامیر");
   await page
     .locator(".record-attribution")
-    .getByText("UI Admin", { exact: true })
+    .getByText("@uiadmin", { exact: true })
     .first()
     .waitFor();
   assert.equal(roll.createdByUsername, "uiadmin");
