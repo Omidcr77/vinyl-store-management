@@ -546,3 +546,64 @@ textarea {
     gap: 12px;
   }
 }
+
+/* Record lists reflow inside the viewport, including when table view is saved. */
+.mobile-cell-label { display: none; }
+.record-cell-value { min-width: 0; }
+@media screen and (max-width: 760px) {
+  .responsive-records { overflow: visible; }
+  .responsive-records > table { display: block; white-space: normal; }
+  .responsive-records > table > thead {
+    position: absolute; width: 1px; height: 1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .responsive-records > table > tbody { display: grid; gap: 14px; padding: 12px; }
+  .responsive-records > table > tbody > tr {
+    display: block; min-width: 0; padding: 6px 14px;
+    border: 1px solid #dce5dc; border-radius: 10px; background: #fff;
+  }
+  .responsive-records > table > tbody > tr > td {
+    display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr);
+    align-items: start; gap: 12px; padding: 11px 0;
+    border: 0; border-bottom: 1px solid #edf0e6;
+    font-size: 14px; text-align: start; overflow-wrap: anywhere;
+  }
+  .responsive-records > table > tbody > tr > td:last-child { border-bottom: 0; }
+  .responsive-records .mobile-cell-label { display: block; font-size: 12px; color: #65776b; }
+  .responsive-records .record-cell-value { overflow-wrap: anywhere; }
+  .responsive-records td[data-column="vinylName"],
+  .responsive-records td[data-column="name"],
+  .responsive-records td[data-column="actions"],
+  .responsive-records td[data-column="print"] { grid-template-columns: minmax(0, 1fr); }
+  .responsive-records td[data-column="actions"] .record-cell-value,
+  .responsive-records td[data-column="print"] .record-cell-value { display: flex; flex-wrap: wrap; gap: 8px; }
+  .responsive-records .product-cell, .responsive-records .customer-cell { white-space: normal; }
+  .responsive-records .record-link { font-size: 14px; }
+  .responsive-records .cell-sub, .record-card .cell-sub { font-size: 12px; }
+  .responsive-records .record-attribution, .record-card .record-attribution { min-width: 0; max-width: 100%; font-size: 14px; }
+  .record-card-details [data-column="attribution"] { grid-column: 1 / -1; }
+  .record-card-details > div, .record-card-actions > div { min-width: 0; }
+  .record-card-details dt { font-size: 12px; }
+  .record-card-details dd { font-size: 14px; }
+  .toolbar { flex-wrap: wrap; align-items: stretch; }
+  .toolbar > .field, .toolbar > .search-input { flex: 1 1 100%; min-width: 0; max-width: none; }
+  .toolbar .field select, .toolbar .field input { width: 100%; min-width: 0; }
+  .toolbar select { max-width: 100%; }
+  .record-view-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .record-view-controls button { min-width: 0; padding: 8px 4px; font-size: 11px; }
+  .topbar { height: auto; min-height: 64px; gap: 8px; padding-block: 10px; }
+  .topbar-right, .topbar-left { min-width: 0; }
+  .topbar .breadcrumb > span, .topbar .breadcrumb > strong { display: none; }
+  .topbar .mobile-menu, .topbar .mobile-close { min-width: 44px; min-height: 44px; }
+  .topbar-right > span:not(.currency-label) { display: none; }
+  .row-actions { flex-wrap: wrap; }
+  .row-actions button, .row-actions a { min-width: 44px; min-height: 44px; }
+  .page-heading .actions { flex-wrap: wrap; }
+  .page-heading .actions > button, .page-heading .actions > a { flex: 1 1 auto; justify-content: center; }
+  .panel, .form-panel, .field, .actions, .report-filters { min-width: 0; }
+  .detail-grid { grid-template-columns: minmax(0, 1fr); }
+  input, select, textarea { font-size: 16px; }
+  button, .button { min-height: 44px; }
+  .actions button, .actions .button, .record-view-controls button { min-height: 44px; }
+  .pagination { flex-wrap: wrap; gap: 12px; padding: 14px; }
+}

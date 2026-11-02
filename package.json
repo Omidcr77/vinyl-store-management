@@ -14,6 +14,7 @@
     "build": "npm run build -w frontend",
     "test": "npm run test -w backend && node --test --test-concurrency=1 tests/startup.test.mjs tests/restart.test.mjs tests/calendar.test.mjs tests/public-proxy.test.mjs tests/security.test.mjs",
     "test:ui": "node tests/ui.mjs",
+    "test:mobile": "node tests/mobile-layout.mjs",
     "db:setup": "node scripts/setup-mysql.mjs",
     "db:migrate": "node scripts/migrate-mongodb-to-mysql.mjs",
     "admin:reset": "node scripts/reset-admin.mjs",

@@ -138,7 +138,7 @@ export function Table({
             <div className="record-card-title">{cell(title, row)}</div>
             <dl className="record-card-details">
               {details.map((c) => (
-                <div key={c.key}>
+                <div key={c.key} data-column={c.key}>
                   <dt>{c.label}</dt>
                   <dd>{cell(c, row)}</dd>
                 </div>
@@ -159,7 +159,7 @@ export function Table({
     );
   }
   return (
-    <div className="table-scroll">
+    <div className="table-scroll responsive-records">
       <table>
         <thead>
           <tr>
@@ -172,14 +172,11 @@ export function Table({
           {rows.map((row, i) => (
             <tr key={row._id || i}>
               {columns.map((c) => (
-                <td key={c.key}>
-                  {c.render
-                    ? c.render(row)
-                    : c.key === "paymentMethod"
-                      ? paymentMethod(row[c.key])
-                      : c.key === "customerName"
-                        ? customerName(row[c.key])
-                        : (row[c.key] ?? "—")}
+                <td key={c.key} data-column={c.key}>
+                  <span className="mobile-cell-label" aria-hidden="true">
+                    {c.label}
+                  </span>
+                  <div className="record-cell-value">{cell(c, row)}</div>
                 </td>
               ))}
             </tr>

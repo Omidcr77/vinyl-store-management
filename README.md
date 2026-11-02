@@ -8,6 +8,8 @@ The interface is in **Dari (`fa-AF`) with right-to-left layout**, including mobi
 
 The default store name is **فرش و قالین فروشی** and the default currency is **USD**. Each invoice and new payment receipt stores its currency. Currency changes remain blocked after the first sale or receipt to protect financial history.
 
+On phones and narrow tablets (up to 760px), record tables stack into labeled records so photos, worker attribution and actions fit the screen, even with table view saved. Desktop tables and A4 print layouts retain their columns. Mobile filters stack vertically, record buttons have larger touch targets, and grid/row views reserve a full-width section for attribution.
+
 ## Photos, printing and PDFs
 
 - Customer and inventory forms include **عکس (اختیاری)**. Upload JPG, PNG or WebP up to 5 MB, replace it or remove it. The server validates the actual image, removes metadata and stores a resized WebP. Thumbnails appear in lists and larger photos in record details.
@@ -240,6 +242,8 @@ Search, filtering, sorting and pagination happen on the server. Searches match n
 Invoice, receipt and customer-statement previews offer **دانلود PDF** for a direct download and **چاپ / ذخیرهٔ PDF** for browser printing. Statements include the complete customer history. Sales reports use browser printing/Save as PDF and load all matching pages before printing. Very large print documents can use significant browser memory; use a narrower report range or streamed CSV/Excel export for large datasets.
 
 ## Tests and build
+
+Run `npm run test:mobile` with the local frontend running, or set `MOBILE_TEST_URL` to test a deployed frontend. These layout checks use representative intercepted API fixtures and never change live records. They verify record content at 320, 360, 390, 430, 760, 768, 1024 and 1440px, including the activity filters and print layout. `npm run test:ui` separately runs the authenticated business workflows against an isolated MySQL database.
 
 ```sh
 npm test

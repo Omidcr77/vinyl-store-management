@@ -1089,7 +1089,64 @@ try {
       await page.getByRole("button", { name: "بازکردن فهرست" }).isVisible(),
       true,
     );
+    if (["/inventory", "/sales", "/customers"].includes(path)) {
+      await page
+        .getByRole("button", { name: "جدول (پیش‌فرض)", exact: true })
+        .click();
+      await page.locator(".responsive-records tbody tr").first().waitFor();
+    }
+    for (const width of [320, 360, 390, 430, 760]) {
+      await page.setViewportSize({ width, height: 844 });
+      const overflow = await page
+        .locator(".responsive-records")
+        .evaluateAll((nodes) =>
+          nodes.flatMap((node) => {
+            const table = node.querySelector("table"),
+              bounds = node.getBoundingClientRect();
+            return table && table.scrollWidth > bounds.width + 2
+              ? [{ width: bounds.width, content: table.scrollWidth }]
+              : [];
+          }),
+        );
+      assert.deepEqual(
+        overflow,
+        [],
+        `Record fields must fit the phone width at ${path}, ${width}px`,
+      );
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        true,
+        `Page overflow at ${path}, ${width}px`,
+      );
+      assert.equal(
+        await page.getByRole("button", { name: "بازکردن فهرست" }).isVisible(),
+        true,
+      );
+    }
+    if (path === "/inventory" || path === "/sales" || path === "/customers") {
+      await page
+        .getByRole("button", { name: "جدول (پیش‌فرض)", exact: true })
+        .click();
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.locator(".responsive-records tbody tr").first().waitFor();
+      const firstRow = page.locator(".responsive-records tbody tr").first();
+      assert.equal(
+        await firstRow.locator('[data-column="attribution"]').isVisible(),
+        true,
+      );
+      assert.equal(
+        await firstRow.locator('[data-column="actions"]').isVisible(),
+        true,
+      );
+      await firstRow.screenshot({
+        path: `test-results/mobile-record-${path.slice(1)}.png`,
+        animations: "disabled",
+      });
+    }
   }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(base);
   await page.getByRole("heading", { name: "فروشات اخیر" }).waitFor();
   await page.screenshot({ path: "test-results/mobile.png", fullPage: true });
