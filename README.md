@@ -10,6 +10,10 @@ The default store name is **فرش و قالین فروشی** and the default cu
 
 On phones and narrow tablets (up to 760px), record tables stack into labeled records so photos, worker attribution and actions fit the screen, even with table view saved. Desktop tables and A4 print layouts retain their columns. Mobile filters stack vertically, record buttons have larger touch targets, and grid/row views reserve a full-width section for attribution.
 
+Phone pages use compact headings and short record summaries. Tap **جزئیات بیشتر** to reveal every field and **بستن جزئیات** to collapse them; desktop and printed records retain all fields. The phone dashboard puts today’s sales, customer debt, available stock and the complete low-stock count first, followed by stock alerts and recent sales. Staff continue to see only the stock/customer information allowed by their role.
+
+**حساب من** (also accessible through the sidebar profile) allows editing your display name, choosing the default record view for this account on the current device, and expanding **امنیت و تغییر رمز عبور** to change your password. Changing the default view clears saved inventory/sales/customer view overrides on this device. Names are saved on the server and audited; past records retain their original actor snapshots. Username, role and account activation remain admin-controlled. View preferences stay in browser storage. The compact phone logout icon is labelled **خروج** for assistive technology.
+
 ## Photos, printing and PDFs
 
 - Customer and inventory forms include **عکس (اختیاری)**. Upload JPG, PNG or WebP up to 5 MB, replace it or remove it. The server validates the actual image, removes metadata and stores a resized WebP. Thumbnails appear in lists and larger photos in record details.

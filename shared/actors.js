@@ -49,6 +49,7 @@ export const auditResources = {
   },
 };
 const labels = {
+  "auth.profile": "ویرایش پروفایل",
   "auth.login": "ورود به حساب",
   "auth.logout": "خروج از حساب",
   "auth.password": "تغییر رمز عبور",

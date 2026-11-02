@@ -108,7 +108,11 @@ function Shell() {
               تنظیمات
             </NavLink>
           )}
-          <div className="store-profile">
+          <Link
+            to="/account"
+            className="store-profile"
+            onClick={() => setMenu(false)}
+          >
             <div className="avatar">ف</div>
             <div>
               {user.name} · {roleLabels[user.role]}
@@ -117,7 +121,7 @@ function Shell() {
                 {connected ? "به‌روزرسانی زنده فعال است" : "در حال اتصال مجدد"}
               </small>
             </div>
-          </div>
+          </Link>
         </div>
       </aside>
       {menu && <div className="scrim" onClick={() => setMenu(false)} />}
@@ -141,11 +145,13 @@ function Shell() {
             </Link>
             <button
               className="logout-button no-print"
+              aria-label="خروج"
+              title="خروج از حساب"
               type="button"
               onClick={() => logout().catch((e) => setLogoutError(e.message))}
             >
               <LogOut size={18} aria-hidden="true" />
-              خروج
+              <span>خروج</span>
             </button>
             <span>{date(new Date(), { weekday: "short" })}</span>
             <span className="currency-label">

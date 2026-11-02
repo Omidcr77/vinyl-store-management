@@ -116,6 +116,40 @@ export function Table({
   view = "table",
   empty = "موردی یافت نشد. فیلتر را تغییر دهید یا نخستین مورد را ثبت کنید.",
 }) {
+  const [expanded, setExpanded] = useState({});
+  const primary = new Set([
+    "selection",
+    "rollNumber",
+    "vinylName",
+    "name",
+    "billNumber",
+    "customerName",
+    "amount",
+    "totalAmount",
+    "balance",
+    "remainingBalance",
+    "length",
+    "status",
+    "role",
+    "active",
+    "date",
+    "action",
+    "actorName",
+    "attribution",
+    "actions",
+    "print",
+  ]);
+  const toggle = (key) => setExpanded((old) => ({ ...old, [key]: !old[key] }));
+  const detailsButton = (key) => (
+    <button
+      type="button"
+      className="mobile-record-toggle"
+      aria-expanded={!!expanded[key]}
+      onClick={() => toggle(key)}
+    >
+      {expanded[key] ? "بستن جزئیات" : "جزئیات بیشتر"}
+    </button>
+  );
   const cell = (column, row) =>
     column.render
       ? column.render(row)
@@ -134,16 +168,25 @@ export function Table({
     return rows.length ? (
       <div className={`record-cards record-cards-${view}`}>
         {rows.map((row, i) => (
-          <article className="record-card" key={row._id || i}>
+          <article
+            className="record-card"
+            key={row._id || i}
+            data-expanded={!!expanded[row._id || i]}
+          >
             <div className="record-card-title">{cell(title, row)}</div>
             <dl className="record-card-details">
               {details.map((c) => (
-                <div key={c.key} data-column={c.key}>
+                <div
+                  key={c.key}
+                  data-column={c.key}
+                  data-secondary={!primary.has(c.key)}
+                >
                   <dt>{c.label}</dt>
                   <dd>{cell(c, row)}</dd>
                 </div>
               ))}
             </dl>
+            {detailsButton(row._id || i)}
             {actions.length > 0 && (
               <div className="record-card-actions">
                 {actions.map((c) => (
@@ -170,15 +213,22 @@ export function Table({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={row._id || i}>
+            <tr key={row._id || i} data-expanded={!!expanded[row._id || i]}>
               {columns.map((c) => (
-                <td key={c.key} data-column={c.key}>
+                <td
+                  key={c.key}
+                  data-column={c.key}
+                  data-secondary={!primary.has(c.key)}
+                >
                   <span className="mobile-cell-label" aria-hidden="true">
                     {c.label}
                   </span>
                   <div className="record-cell-value">{cell(c, row)}</div>
                 </td>
               ))}
+              <td className="mobile-details-cell" colSpan={columns.length}>
+                {detailsButton(row._id || i)}
+              </td>
             </tr>
           ))}
         </tbody>

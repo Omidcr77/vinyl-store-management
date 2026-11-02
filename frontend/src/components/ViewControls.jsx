@@ -8,12 +8,17 @@ const modes = [
   ["rows", "ردیفی", List],
 ];
 export function useRecordView(page) {
-  const {user}=useAuth();
+  const { user } = useAuth();
   const key = `store:record-view:${user._id}:${page}`;
   const [view, setView] = useState(() => {
     try {
       const stored = localStorage.getItem(key);
-      return modes.some(([value]) => value === stored) ? stored : "table";
+      const fallback = localStorage.getItem(`store:default-view:${user._id}`);
+      return modes.some(([value]) => value === stored)
+        ? stored
+        : modes.some(([value]) => value === fallback)
+          ? fallback
+          : "table";
     } catch {
       return "table";
     }

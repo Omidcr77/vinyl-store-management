@@ -91,17 +91,33 @@ try {
     const data =
       path === "/api/auth/session"
         ? { user, csrf: "mobile-layout-fixture" }
-        : path === "/api/settings"
-          ? settings
-          : path === "/api/audit"
-            ? list(event)
-            : path === "/api/users"
-              ? list(user)
-              : path === "/api/vinyl"
-                ? list(roll)
-                : path === "/api/customers"
-                  ? list(customer)
-                  : {};
+        : path === "/api/dashboard/summary"
+          ? {
+              todaySales: 1200,
+              totalRevenue: 12000,
+              monthSales: 3000,
+              outstandingDebt: 450,
+              customerCredit: 0,
+              availableRolls: 18,
+              remainingMeters: 810,
+              remainingArea: 3240,
+              customers: 6,
+              lowStockCount: 7,
+              lowStock: [{ ...roll, length: 3, status: "low-stock" }],
+              recentSales: [],
+              trend: [],
+            }
+          : path === "/api/settings"
+            ? settings
+            : path === "/api/audit"
+              ? list(event)
+              : path === "/api/users"
+                ? list(user)
+                : path === "/api/vinyl"
+                  ? list(roll)
+                  : path === "/api/customers"
+                    ? list(customer)
+                    : {};
     await route.fulfill({ json: { success: true, data } });
   });
   await context.route("**/socket.io/**", (route) =>
@@ -176,10 +192,18 @@ try {
       }
     }
     await page.setViewportSize({ width: 360, height: 800 });
+    await page.waitForFunction(
+      () =>
+        document.querySelector(".sidebar").getBoundingClientRect().left >=
+        innerWidth - 1,
+    );
     await page
       .locator(".responsive-records tbody tr")
       .first()
-      .screenshot({ path: `test-results/mobile-layout-${path.slice(1)}.png` });
+      .screenshot({
+        path: `test-results/mobile-layout-${path.slice(1)}.png`,
+        animations: "disabled",
+      });
     if (path === "/audit") {
       await page.getByLabel("جستجوی کاربر یا رکورد").fill("farid");
       await page.getByLabel("نقش هنگام عملیات").selectOption("staff");
@@ -213,6 +237,60 @@ try {
       `PASS: ${path} content, controls and print layout at phone/tablet/desktop widths`,
     );
   }
+  await page.goto(base + "/inventory");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const extra = page
+    .locator('.responsive-records td[data-column="type"]')
+    .first();
+  assert.equal(await extra.isVisible(), false);
+  await page
+    .getByRole("button", { name: "جزئیات بیشتر", exact: true })
+    .first()
+    .click();
+  assert.equal(await extra.isVisible(), true);
+  await page
+    .getByRole("button", { name: "بستن جزئیات", exact: true })
+    .first()
+    .click();
+  assert.equal(await extra.isVisible(), false);
+  console.log(
+    "PASS: compact record summaries expand and collapse without losing fields",
+  );
+  await page.goto(base + "/");
+  await page.locator(".daily-focus").waitFor();
+  assert.equal(await page.locator(".daily-metrics > a").count(), 4);
+  assert.ok(
+    (await page.locator(".daily-metrics").boundingBox()).y < 300,
+    "Daily figures must be visible before scrolling",
+  );
+  await page.screenshot({
+    path: "test-results/phone-dashboard-redesign.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.goto(base + "/account");
+  await page.getByLabel("نام نمایشی", { exact: true }).waitFor();
+  assert.equal(
+    await page.getByLabel("نام نمایشی", { exact: true }).isEditable(),
+    true,
+  );
+  assert.equal(
+    await page.getByLabel("رمز جدید", { exact: true }).isVisible(),
+    false,
+  );
+  await page.getByText("امنیت و تغییر رمز عبور", { exact: true }).click();
+  assert.equal(
+    await page.getByLabel("رمز جدید", { exact: true }).isVisible(),
+    true,
+  );
+  await page.screenshot({
+    path: "test-results/phone-account-redesign.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  console.log(
+    "PASS: actionable phone dashboard and editable profile with expandable security settings",
+  );
   assert.deepEqual(errors, []);
   console.log(
     `Mobile layout checks passed against ${base} using representative fixtures.`,

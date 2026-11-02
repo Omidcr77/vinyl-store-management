@@ -55,6 +55,10 @@ export default function Dashboard() {
                 label="رول‌های موجود"
                 value={number(data.availableRolls)}
               />
+              <SummaryCard
+                label="طول قابل فروش"
+                value={`${number(data.remainingMeters)} متر`}
+              />
               <SummaryCard label="مشتریان" value={number(data.customers)} />
             </div>
           )
@@ -89,6 +93,43 @@ export default function Dashboard() {
       {loading && !data && <Loading />}
       {data && (
         <>
+          <section className="daily-focus" aria-label="خلاصهٔ امروز">
+            <div className="daily-focus-heading">
+              <h2>امروز در دکان</h2>
+              <span>{date(new Date(), { weekday: "short" })}</span>
+            </div>
+            <div className="daily-metrics">
+              <Link to="/sales">
+                <span>فروش امروز</span>
+                <strong>{money(data.todaySales)}</strong>
+                <small>مشاهدهٔ فروشات ←</small>
+              </Link>
+              <Link to="/customers">
+                <span>باقی‌داری مشتریان</span>
+                <strong>{money(data.outstandingDebt)}</strong>
+                <small>پیگیری حساب‌ها ←</small>
+              </Link>
+              <Link to="/inventory">
+                <span>رول آمادهٔ فروش</span>
+                <strong>{number(data.availableRolls)}</strong>
+                <small>{number(data.remainingMeters)} متر موجود</small>
+              </Link>
+              <Link to="/inventory?status=low-stock">
+                <span>رول نیازمند بررسی</span>
+                <strong>
+                  {number(data.lowStockCount ?? data.lowStock.length)}
+                </strong>
+                <small>
+                  کمتر از {number(settings?.lowStockThreshold ?? 5)} متر
+                </small>
+              </Link>
+            </div>
+            <nav className="dashboard-shortcuts" aria-label="کارهای روزمره">
+              <Link to="/sales/new">＋ فروش جدید</Link>
+              <Link to="/customers">مشتریان و رسیدها</Link>
+              <Link to="/inventory">بررسی موجودی</Link>
+            </nav>
+          </section>
           <div className="overview-banner">
             <div>
               <span className="eyebrow">هر متر ارزش دارد</span>

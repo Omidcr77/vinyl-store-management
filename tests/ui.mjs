@@ -253,6 +253,29 @@ try {
     "60",
   );
   console.log("PASS: admin session duration setting saves and persists");
+  await page.goto(`${base}/account`);
+  await page.getByLabel("نام نمایشی", { exact: true }).fill("UI Admin Updated");
+  await page
+    .getByRole("button", { name: "ذخیرهٔ پروفایل", exact: true })
+    .click();
+  await page.getByText("پروفایل ذخیره شد.", { exact: true }).waitFor();
+  assert.equal((await api("/auth/session")).user.name, "UI Admin Updated");
+  await page
+    .getByLabel("نمایش پیش‌فرض رکوردها", { exact: true })
+    .selectOption("grid");
+  await page
+    .getByText("نمایش پیش‌فرض در این دستگاه ذخیره شد.", { exact: true })
+    .waitFor();
+  await page
+    .getByLabel("نمایش پیش‌فرض رکوردها", { exact: true })
+    .selectOption("table");
+  await page.getByLabel("نام نمایشی", { exact: true }).fill("UI Admin");
+  await page
+    .getByRole("button", { name: "ذخیرهٔ پروفایل", exact: true })
+    .click();
+  await page.getByText("پروفایل ذخیره شد.", { exact: true }).waitFor();
+  console.log("PASS: account name editing and per-user view preferences");
+
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
     if (
@@ -1342,7 +1365,9 @@ try {
     assert.equal(
       await rowDelete.evaluate((button) => {
         const cell = button.closest("td");
-        const cells = [...cell.parentElement.children];
+        const cells = [...cell.parentElement.children].filter(
+          (other) => getComputedStyle(other).display !== "none",
+        );
         return cells.every(
           (other) =>
             cell.getBoundingClientRect().left <=

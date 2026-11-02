@@ -105,6 +105,25 @@ router.post("/logout", async (req, res) => {
   cookie(res, "", new Date(0));
   send(res, { message: "خارج شدید." });
 });
+router.put("/profile", async (req, res) => {
+  const input = z
+    .object({ name: z.string().trim().min(1).max(100) })
+    .strict()
+    .parse(req.body);
+  const user = await database.connection.transaction(async (session) => {
+    const current = required(
+      await User.findById(req.user._id).session(session),
+    );
+    Object.assign(current, { name: input.name }, actorFields());
+    await current.save({ session });
+    await audit("auth.profile", current._id, session, undefined, req.user, {
+      targetLabel: current.username,
+    });
+    return current;
+  });
+  req.app.get("io")?.emit("store:changed");
+  send(res, publicUser(user));
+});
 router.post("/password", async (req, res) => {
   const input = z
     .object({

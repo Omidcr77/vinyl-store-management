@@ -607,3 +607,67 @@ textarea {
   .actions button, .actions .button, .record-view-controls button { min-height: 44px; }
   .pagination { flex-wrap: wrap; gap: 12px; padding: 14px; }
 }
+
+/* Compact, task-first phone workspace. Full records remain available on demand. */
+.mobile-record-toggle, .mobile-details-cell, .daily-focus { display: none; }
+.profile-panel { padding: 24px; max-width: 640px; }
+.profile-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.profile-heading h1 { margin: 0; font-size: 24px; }
+.profile-avatar { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; background: #e7eee4; color: #214d3a; font-size: 26px; }
+.profile-panel form { display: grid; gap: 12px; margin-bottom: 24px; }
+.profile-panel p, .profile-panel small { font-size: 12px; line-height: 1.8; }
+.profile-panel .profile-success { color: #216140; }
+.account-security { max-width: 640px; margin-top: 16px; border: 1px solid #d9e2dd; border-radius: 12px; background: white; }
+.account-security > summary { cursor: pointer; padding: 18px; font-weight: 600; }
+.account-page .account-security .login-card { max-width: none; border: 0; }
+.login-page .account-security { margin: 0; width: 100%; max-width: 440px; }
+.login-page .account-security > summary { display: none; }
+.store-profile { text-decoration: none; color: inherit; }
+@media screen and (max-width: 760px) {
+  main { padding: 14px 12px 24px; }
+  .topbar { min-height: 56px; padding: 6px 12px; }
+  .topbar .logout-button { background: transparent; color: #7c665f; border: 1px solid #e4e8df; padding: 8px; min-width: 40px; min-height: 40px; border-radius: 10px; box-shadow: none; }
+  .topbar .logout-button span { display: none; }
+  .topbar .currency-label { display: none; }
+  .topbar .account-link { font-size: 13px; padding: 10px 4px; }
+  .page-heading { margin-bottom: 14px; gap: 10px; }
+  .page-heading h1 { font-size: 22px; line-height: 1.5; margin: 0; }
+  .page-heading .eyebrow, .page-heading p { display: none; }
+  .page-heading .actions:empty { display: none; }
+  .panel-heading { padding: 12px 14px; }
+  .toolbar { padding: 12px; gap: 10px; }
+  .record-view-bar { padding: 8px 12px; }
+  .record-view-controls button { min-height: 38px; }
+  .responsive-records > table > tbody { padding: 10px; gap: 10px; }
+  .responsive-records > table > tbody > tr > td { padding-block: 8px; font-size: 13px; }
+  .responsive-records tr[data-expanded="false"] > td[data-secondary="true"],
+  .record-card[data-expanded="false"] .record-card-details > div[data-secondary="true"] { display: none; }
+  .responsive-records tr[data-expanded="false"] .attribution-event + .attribution-event,
+  .record-card[data-expanded="false"] .attribution-event + .attribution-event,
+  .responsive-records tr[data-expanded="false"] .record-attribution .cell-sub,
+  .record-card[data-expanded="false"] .record-attribution .cell-sub,
+  .responsive-records tr[data-expanded="false"] .attribution-label,
+  .record-card[data-expanded="false"] .attribution-label { display: none; }
+  .responsive-records tr[data-expanded="false"] .record-attribution { font-size: 12px; }
+  .responsive-records > table > tbody > tr > td.mobile-details-cell { display: block; padding-block: 6px; }
+  .mobile-record-toggle { display: block; background: #f3f6f1; border: 1px solid #dfe7db; border-radius: 8px; color: #345d43; width: 100%; min-height: 40px; font-size: 12px; }
+  .record-card { padding: 14px; gap: 12px; }
+  .record-card-details { gap: 8px 12px; }
+  .daily-focus { display: block; margin-bottom: 16px; }
+  .daily-focus-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .daily-focus-heading h2 { font-size: 15px; margin: 0; }
+  .daily-focus-heading > span { font-size: 11px; color: #788b78; }
+  .daily-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .daily-metrics > a { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px 12px; border: 1px solid #dce5d7; border-radius: 12px; background: #fff; color: #244b38; text-decoration: none; }
+  .daily-metrics > a:first-child { background: #214d3b; color: #fff; border-color: #214d3b; }
+  .daily-metrics span, .daily-metrics small { font-size: 11px; }
+  .daily-metrics strong { font-size: 20px; overflow-wrap: anywhere; }
+  .daily-metrics small { opacity: .75; }
+  .dashboard-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .dashboard-shortcuts a { flex: 1 1 auto; text-align: center; padding: 12px 8px; border-radius: 8px; background: #e6eee0; color: #2d573e; font-size: 12px; text-decoration: none; }
+  .overview-banner, .overview-banner + .summary-grid, .dashboard-middle > section:first-child { display: none; }
+  .dashboard-middle { margin-bottom: 14px; }
+  .profile-panel { padding: 18px; }
+  .profile-panel .profile-heading p { margin: 4px 0 0; }
+  .account-security > summary { padding: 16px; font-size: 14px; }
+}

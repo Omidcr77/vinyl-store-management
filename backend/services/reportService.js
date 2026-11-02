@@ -182,6 +182,7 @@ export async function dashboard() {
     customers,
     recentSales,
     lowStock,
+    lowStockCount,
     trend,
   ] = await Promise.all([
     inventorySummary(),
@@ -202,6 +203,7 @@ export async function dashboard() {
     VinylRoll.find({ archived: false, status: "low-stock" })
       .sort({ length: 1 })
       .limit(5),
+    VinylRoll.countDocuments({ archived: false, status: "low-stock" }),
     Sale.aggregate([
       {
         $match: {
@@ -236,6 +238,7 @@ export async function dashboard() {
     customers,
     recentSales,
     lowStock,
+    lowStockCount,
     trend,
   };
 }
