@@ -113,7 +113,7 @@ function Shell() {
             className="store-profile"
             onClick={() => setMenu(false)}
           >
-            <div className="avatar">ف</div>
+            <div className="avatar">{user.name.slice(0, 1)}</div>
             <div>
               {user.name} · {roleLabels[user.role]}
               <small>
@@ -140,7 +140,10 @@ function Shell() {
             <strong>{section}</strong>
           </div>
           <div className="topbar-right">
-            <Link to="/account" className="account-link">
+            <Link to="/account" className="account-link" aria-label="حساب من">
+              <span className="account-avatar" aria-hidden="true">
+                {user.name.slice(0, 1)}
+              </span>
               حساب من
             </Link>
             <button

@@ -14,6 +14,8 @@ Phone pages use compact headings and short record summaries. Tap **جزئیات 
 
 **حساب من** (also accessible through the sidebar profile) allows editing your display name, choosing the default record view for this account on the current device, and expanding **امنیت و تغییر رمز عبور** to change your password. Changing the default view clears saved inventory/sales/customer view overrides on this device. Names are saved on the server and audited; past records retain their original actor snapshots. Username, role and account activation remain admin-controlled. View preferences stay in browser storage. The compact phone logout icon is labelled **خروج** for assistive technology.
 
+The **Modern Workspace** theme uses deep teal navigation/actions, light slate work surfaces, consistent white cards and readable status badges (green: available/paid, amber: low stock/partial, red: credit/debt). Desktop and phone dashboards share the same daily metrics; **آمار بیشتر دکان** reveals monthly/lifetime sales, customer credit, customers, stock area and stock value. Forms, focus indicators, record controls and account screens share the same design tokens in `frontend/src/workspace.css`. Screen-only theme rules preserve the dedicated A4 document styling.
+
 ## Photos, printing and PDFs
 
 - Customer and inventory forms include **عکس (اختیاری)**. Upload JPG, PNG or WebP up to 5 MB, replace it or remove it. The server validates the actual image, removes metadata and stores a resized WebP. Thumbnails appear in lists and larger photos in record details.

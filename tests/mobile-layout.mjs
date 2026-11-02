@@ -101,6 +101,7 @@ try {
               availableRolls: 18,
               remainingMeters: 810,
               remainingArea: 3240,
+              inventoryValue: 8100,
               customers: 6,
               lowStockCount: 7,
               lowStock: [{ ...roll, length: 3, status: "low-stock" }],
@@ -268,6 +269,14 @@ try {
     fullPage: true,
     animations: "disabled",
   });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByText("آمار بیشتر دکان", { exact: true }).click();
+  await page.screenshot({
+    path: "test-results/workspace-desktop-dashboard.png",
+    fullPage: true,
+    animations: "disabled",
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(base + "/account");
   await page.getByLabel("نام نمایشی", { exact: true }).waitFor();
   assert.equal(

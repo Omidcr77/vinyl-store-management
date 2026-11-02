@@ -114,7 +114,12 @@ export default function Dashboard() {
                 <strong>{number(data.availableRolls)}</strong>
                 <small>{number(data.remainingMeters)} متر موجود</small>
               </Link>
-              <Link to="/inventory?status=low-stock">
+              <Link
+                to="/inventory?status=low-stock"
+                data-attention={
+                  (data.lowStockCount ?? data.lowStock.length) > 0
+                }
+              >
                 <span>رول نیازمند بررسی</span>
                 <strong>
                   {number(data.lowStockCount ?? data.lowStock.length)}
@@ -130,6 +135,35 @@ export default function Dashboard() {
               <Link to="/inventory">بررسی موجودی</Link>
             </nav>
           </section>
+          <details className="dashboard-extra">
+            <summary>آمار بیشتر دکان</summary>
+            <div className="workspace-stat-strip">
+              <div>
+                <span>فروش ماه جاری</span>
+                <strong>{money(data.monthSales)}</strong>
+              </div>
+              <div>
+                <span>مجموع فروشات</span>
+                <strong>{money(data.totalRevenue)}</strong>
+              </div>
+              <div>
+                <span>طلب مشتریان</span>
+                <strong>{money(data.customerCredit || 0)}</strong>
+              </div>
+              <div>
+                <span>مشتریان</span>
+                <strong>{number(data.customers)}</strong>
+              </div>
+              <div>
+                <span>مساحت موجودی</span>
+                <strong>{number(data.remainingArea)} متر مربع</strong>
+              </div>
+              <div>
+                <span>ارزش خرید موجودی</span>
+                <strong>{money(data.inventoryValue)}</strong>
+              </div>
+            </div>
+          </details>
           <div className="overview-banner">
             <div>
               <span className="eyebrow">هر متر ارزش دارد</span>
