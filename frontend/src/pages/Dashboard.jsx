@@ -115,17 +115,18 @@ export default function Dashboard() {
                 <small>{number(data.remainingMeters)} متر موجود</small>
               </Link>
               <Link
-                to="/inventory?status=low-stock"
+                to="/inventory"
                 data-attention={
                   (data.lowStockCount ?? data.lowStock.length) > 0
                 }
               >
-                <span>رول نیازمند بررسی</span>
+                <span>اجناس نیازمند تأمین</span>
                 <strong>
                   {number(data.lowStockCount ?? data.lowStock.length)}
                 </strong>
                 <small>
-                  کمتر از {number(settings?.lowStockThreshold ?? 5)} متر
+                  کمتر از {number(data.lowStockRollThreshold ?? 3)} رول از هر
+                  جنس
                 </small>
               </Link>
             </div>
@@ -262,15 +263,21 @@ export default function Dashboard() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
-                  <h2>رول‌های کم‌موجود</h2>
-                  <p>کمتر از {settings?.lowStockThreshold ?? 5} متر</p>
+                  <h2>اجناس کم‌موجود</h2>
+                  <p>
+                    کمتر از {number(data.lowStockRollThreshold ?? 3)} رول موجود
+                    از هر جنس
+                  </p>
                 </div>
                 <span className="amber-dot" />
               </div>
               <div className="low-stock-list">
                 {data.lowStock.length ? (
                   data.lowStock.map((r) => (
-                    <Link to={`/inventory?search=${r.rollNumber}`} key={r._id}>
+                    <Link
+                      to={`/inventory?search=${encodeURIComponent(r.vinylName)}`}
+                      key={r._id}
+                    >
                       <div
                         className="swatch"
                         data-type={r.type.toLowerCase()}
@@ -278,19 +285,19 @@ export default function Dashboard() {
                       <div>
                         <strong>{r.vinylName}</strong>
                         <small>
-                          شمارهٔ رول{r.rollNumber} · {r.color}
+                          {r.type} · {r.color} · عرض {number(r.width)} متر
                         </small>
                       </div>
-                      <span>{number(r.length)} متر</span>
+                      <span>{number(r.rollCount)} رول</span>
                     </Link>
                   ))
                 ) : (
                   <div className="empty">
-                    موجودی کافی است؛ هیچ رولی کم‌موجود نیست.
+                    همهٔ اجناس حداقل 3 رول موجود دارند.
                   </div>
                 )}
               </div>
-              <Link className="panel-link" to="/inventory?status=low-stock">
+              <Link className="panel-link" to="/inventory">
                 بررسی موجودی <ArrowRight size={15} />
               </Link>
             </section>

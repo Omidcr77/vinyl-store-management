@@ -163,6 +163,45 @@ export async function customerReport(q) {
     pages: Math.max(1, Math.ceil(total / limit)),
   };
 }
+// Dashboard replenishment alerts count physical rolls, not remaining meters.
+async function lowRollStock() {
+  const groups = await VinylRoll.aggregate([
+    { $match: { archived: false } },
+    {
+      $group: {
+        _id: {
+          vinylName: "$vinylName",
+          type: "$type",
+          color: "$color",
+          width: "$width",
+        },
+        rollCount: { $sum: { $cond: [{ $gt: ["$length", 0] }, 1, 0] } },
+        remainingMeters: { $sum: "$length" },
+      },
+    },
+    { $match: { rollCount: { $lt: 3 } } },
+    {
+      $sort: {
+        rollCount: 1,
+        "_id.vinylName": 1,
+        "_id.type": 1,
+        "_id.color": 1,
+        "_id.width": 1,
+      },
+    },
+  ]);
+  return {
+    count: groups.length,
+    items: groups
+      .slice(0, 5)
+      .map((row) => ({
+        ...row._id,
+        _id: JSON.stringify(row._id),
+        rollCount: row.rollCount,
+        remainingMeters: row.remainingMeters,
+      })),
+  };
+}
 export async function dashboard() {
   const calendar =
     (await Settings.findById("store").lean())?.calendar || "gregory";
@@ -181,8 +220,7 @@ export async function dashboard() {
     debt,
     customers,
     recentSales,
-    lowStock,
-    lowStockCount,
+    rollStock,
     trend,
   ] = await Promise.all([
     inventorySummary(),
@@ -200,10 +238,7 @@ export async function dashboard() {
     ]),
     Customer.countDocuments(),
     Sale.find().sort({ soldDate: -1 }).limit(6),
-    VinylRoll.find({ archived: false, status: "low-stock" })
-      .sort({ length: 1 })
-      .limit(5),
-    VinylRoll.countDocuments({ archived: false, status: "low-stock" }),
+    lowRollStock(),
     Sale.aggregate([
       {
         $match: {
@@ -237,8 +272,9 @@ export async function dashboard() {
     customerCredit: (debt[0]?.credit || 0) / 100,
     customers,
     recentSales,
-    lowStock,
-    lowStockCount,
+    lowStock: rollStock.items,
+    lowStockCount: rollStock.count,
+    lowStockRollThreshold: 3,
     trend,
   };
 }

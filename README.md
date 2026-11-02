@@ -226,7 +226,7 @@ The MySQL persistence layer has separate typed tables for each entity and JSON c
 
 - Length/width accept up to three decimals; money accepts two decimals. Decimal arithmetic computes totals; customer debt is stored as integer minor units and exposed as `balance`.
 - Inventory cost/selling prices are **per linear meter**. The sale screen additionally supports an explicitly entered price per square meter.
-- Zero remaining length means sold. Positive stock below the configured threshold means low stock.
+- Zero remaining length means sold. Individual-roll status still uses the configured meter threshold. Dashboard replenishment alerts group unarchived rolls by product name, type, color and width and flag groups with fewer than **3 available rolls**, independent of their meter lengths. A partly used roll with positive length counts as one roll; sold-out groups show zero. Archived rolls are excluded. The preview shows five groups; the summary counts all matching groups.
 - After a roll has sales, its dimensions cannot be manually rewritten. Add a new roll for new stock.
 - Archiving requires confirmation and is permitted only for rolls with no sales. The record and roll number remain stored.
 - Financial records have no update/delete endpoints. Initial sale payment, snapshots and receipts remain in history. Current invoice `remainingBalance` changes when receipts are allocated.

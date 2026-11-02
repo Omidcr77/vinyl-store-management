@@ -104,7 +104,10 @@ try {
               inventoryValue: 8100,
               customers: 6,
               lowStockCount: 7,
-              lowStock: [{ ...roll, length: 3, status: "low-stock" }],
+              lowStockRollThreshold: 3,
+              lowStock: [
+                { ...roll, length: 3, status: "low-stock", rollCount: 2 },
+              ],
               recentSales: [],
               trend: [],
             }
